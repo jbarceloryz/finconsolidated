@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talent Pool — Net Margin Overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4d;
+      --text: #e6edf3;
+      --muted: #8b9cb3;
+      --gain: #3fb950;
+      --loss: #f85149;
+      --accent: #58a6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 1.5rem 2rem;
+      padding-bottom: max(2rem, 380px);
+      min-height: 100vh;
+    }
+    h1 {
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 1.5rem;
+    }
+    .load-fallback {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .load-fallback input[type="file"] { margin-right: 0.5rem; }
+    .load-fallback button {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+    }
+    .load-fallback button:hover { opacity: 0.9; }
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+    }
+    .card .label { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+    .card .value { font-size: 1.35rem; font-weight: 600; }
+    .card.gain .value { color: var(--gain); }
+    .card.loss .value { color: var(--loss); }
+    .chart-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      height: 380px;
+    }
+    .chart-wrap canvas { max-height: 340px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td { padding: 0.65rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th {
+      background: rgba(0,0,0,0.2);
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.03); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .positive { color: var(--gain); }
+    .negative { color: var(--loss); }
+    .table-wrap { overflow-x: auto; margin-bottom: max(2rem, 340px); }
+    #status { color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem; }
+    #subtitle, #status { display: none; }
+    .cell-with-breakdown { position: relative; cursor: help; text-decoration: underline; text-decoration-style: dotted; }
+    .breakdown-popover {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 2px;
+      z-index: 100;
+      min-width: 220px;
+      max-width: 360px;
+      max-height: 320px;
+      overflow-y: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.8rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .cell-with-breakdown .breakdown-popover { display: none; }
+    .breakdown-popover .breakdown-title { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.4rem; }
+    .breakdown-popover .breakdown-line { padding: 0.15rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .breakdown-popover .breakdown-line:last-child { border-bottom: none; }
+    .breakdown-popover .breakdown-total { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); font-weight: 600; }
+
+    #breakdown-popover-center {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      min-width: 260px;
+      max-width: 400px;
+      max-height: 85vh;
+      overflow-y: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      font-size: 0.85rem;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    }
+    #breakdown-popover-center.visible { display: block; }
+
+    .company-filter-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .company-filter-trigger:hover { border-color: var(--accent); }
+    .company-filter-dropdown {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      z-index: 200;
+      min-width: 260px;
+      max-width: 320px;
+      max-height: 360px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
+    .company-filter-dropdown.open { display: block; }
+    .company-filter-search {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0,0,0,0.15);
+    }
+    .company-filter-search input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem 0.6rem;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+    .company-filter-search input::placeholder { color: var(--muted); }
+    .company-filter-list {
+      max-height: 280px;
+      overflow-y: auto;
+      padding: 0.35rem 0;
+    }
+    .company-filter-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .company-filter-item:hover { background: rgba(255,255,255,0.05); }
+    .company-filter-item input[type="checkbox"] { margin: 0; cursor: pointer; }
+    .company-filter-item .company-icon {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+    }
+    .company-filter-all {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .company-filter-all:hover { background: rgba(255,255,255,0.05); }
+    .company-filter-all input[type="checkbox"] { margin: 0; cursor: pointer; }
+    .company-filter-wrap { position: relative; display: none; }
+    .company-filter-wrap.visible { display: inline-block; }
+    .auth-gate {
+      min-height: calc(100vh - 3rem);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .auth-card {
+      width: min(420px, 100%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 18px 48px rgba(0,0,0,0.35);
+    }
+    .auth-card h2 {
+      font-family: 'Outfit', system-ui, sans-serif;
+      margin: 0 0 0.5rem;
+      font-size: 1.2rem;
+    }
+    .auth-card p {
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .auth-form {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .auth-form input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 0.9rem;
+      color: var(--text);
+      font: inherit;
+    }
+    .auth-form button {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 0.9rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .auth-form button:hover { opacity: 0.92; }
+    .auth-error {
+      min-height: 1.1rem;
+      color: var(--loss);
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+  <script src="data.js"></script>
+
+  <div id="authGate" class="auth-gate">
+    <div class="auth-card">
+      <h2>Dashboard Access</h2>
+      <p>Enter the password to view the dashboard.</p>
+      <form id="authForm" class="auth-form">
+        <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
+        <button type="submit">Enter</button>
+      </form>
+      <div id="authError" class="auth-error" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div id="dashboardApp" style="display: none;">
+    <h1>Talent Pool — Net Margin Gain/Loss</h1>
+    <p class="subtitle" id="subtitle">Per month: <strong>Onboarded</strong> = margin gained (green), <strong>Offboarded</strong> = margin lost (red). CSV from <code>config.json</code> → csvPath.</p>
+
+    <p id="status">Cargando…</p>
+
+    <div class="options-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; margin-bottom: 1rem;">
+      <span id="excludeInternalWrap" style="display: none; align-items: center; gap: 0.5rem;">
+        <label class="option-row" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="excludeInternal" autocomplete="off">
+          <span>Exclude internal contractors</span>
+        </label>
+      </span>
+      <span id="companyFilterWrap" class="company-filter-wrap">
+        <button type="button" class="company-filter-trigger" id="companyFilterTrigger" aria-haspopup="true" aria-expanded="false">Company</button>
+        <div id="companyFilterDropdown" class="company-filter-dropdown" role="listbox">
+          <div class="company-filter-search">
+            <span aria-hidden="true" style="color: var(--muted);">🔍</span>
+            <input type="text" id="companySearch" placeholder="Search company..." autocomplete="off">
+          </div>
+          <label class="company-filter-all">
+            <input type="checkbox" id="companyFilterAll">
+            <span>All</span>
+          </label>
+          <div id="companyFilterList" class="company-filter-list"></div>
+        </div>
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+        <label>From</label>
+        <select id="filterFrom"></select>
+        <label>To</label>
+        <select id="filterTo"></select>
+      </span>
+    </div>
+
+    <div class="summary-cards" id="summaryCards" style="display: none;">
+      <div class="card"><div class="label">Net (gain − loss)</div><div class="value" id="totalNet">—</div></div>
+    </div>
+
+    <div class="chart-wrap" id="chartWrap" style="display: none;">
+      <canvas id="chart"></canvas>
+    </div>
+
+    <div class="table-wrap" id="tableWrap" style="display: none;">
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th class="num">Margin gain ($)</th>
+            <th class="num">Margin loss ($)</th>
+            <th class="num">Contractor growth</th>
+            <th class="num">Net margin ($)</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div id="breakdown-popover-center" class="breakdown-popover" aria-hidden="true"></div>
+  </div>
+
+  <script>
+    const DASHBOARD_PASSWORD = '!accounting123$';
+    const AUTH_STORAGE_KEY = 'grossprofit_dashboard_auth';
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    function parseCSV(text) {
+      const rows = [];
+      let cur = '', inQuotes = false;
+      const row = [];
+      for (let i = 0; i <= text.length; i++) {
+        const c = text[i];
+        if (inQuotes) {
+          if (c === '"') inQuotes = false;
+          else if (c === undefined) break;
+          else cur += c;
+        } else {
+          if (c === '"') inQuotes = true;
+          else if (c === ',' || c === '\n' || c === '\r' || c === undefined) {
+            if (c === '\n' || c === '\r' || c === undefined) {
+              if (row.length) { row.push(cur.trim()); rows.push(row.slice()); row.length = 0; }
+              cur = '';
+              if (c === '\r' && text[i+1] === '\n') i++;
+            } else {
+              row.push(cur.trim());
+              cur = '';
+            }
+          } else cur += c;
+        }
+      }
+      if (row.length || cur) row.push(cur.trim());
+      if (row.length) rows.push(row);
+      return rows;
+    }
+
+    function parseDate(s) {
+      if (!s || s === 'N/A' || s === 'NA') return null;
+      const m = s.match(/^(\w{3})\s+(\d{1,2}),\s*(\d{4})$/);
+      if (!m) return null;
+      const mi = MONTH_NAMES.indexOf(m[1]);
+      if (mi === -1) return null;
+      return new Date(parseInt(m[3], 10), mi, parseInt(m[2], 10));
+    }
+
+    function monthlyMargin(row, headers) {
+      const rate = parseFloat(row[headers['Rate']]) || 0;
+      const cost = parseFloat(row[headers['Actual Cost']]) || 0;
+      const rateType = (row[headers['Rate Type']] || '').toLowerCase();
+      const isHourly = rateType === 'hourly' || rateType === 'monthlyhourly' || rateType === 'weeklyhourly';
+      if (isHourly) return (rate - cost) * 160;
+      return rate - cost;
+    }
+
+    function getKey(row, headers) {
+      const name = (row[headers['Candidate Name']] || '').trim();
+      if (name && name !== 'NA') return name;
+      const first = (row[headers['First Name']] || '').trim();
+      const last = (row[headers['Last Name']] || '').trim();
+      return (first + ' ' + last).trim() || 'Unknown';
+    }
+
+    // New CSV format: Month (MM/YY), Status (Onboarded/Offboarded), Net Margin. No hourly, no internals.
+    function parseMonthToYm(monthStr) {
+      if (!monthStr || typeof monthStr !== 'string') return null;
+      const parts = monthStr.trim().split('/');
+      if (parts.length !== 2) return null;
+      const m = parseInt(parts[0], 10);
+      let y = parseInt(parts[1], 10);
+      if (isNaN(m) || isNaN(y) || m < 1 || m > 12) return null;
+      if (y < 100) y += 2000; // 24 -> 2024, 26 -> 2026
+      return y + '-' + String(m).padStart(2, '0');
+    }
+
+    function processDataNewFormat(rows, headers, opts) {
+      opts = opts || {};
+      const nameCol = headers['Candidate Name'];
+      const monthCol = headers['Month'];
+      const statusCol = headers['Status'];
+      const marginCol = headers['Net Margin'];
+      const companyCol = headers['Company'];
+      const companiesFilter = opts.companies && opts.companies.length ? new Set(opts.companies) : null;
+      const gainByMonth = {};
+      const lossByMonth = {};
+      const gainBreakdown = {};
+      const lossBreakdown = {};
+      const allMonths = new Set();
+      const uniqueNames = new Set();
+      const uniqueCompanies = new Set();
+      rows.slice(1).forEach(r => {
+        uniqueCompanies.add((r[companyCol] || '').trim() || '(sin company)');
+      });
+      rows.slice(1).forEach(r => {
+        const company = (r[companyCol] || '').trim();
+        const companyKey = company || '(sin company)';
+        if (companiesFilter && !companiesFilter.has(companyKey)) return;
+        const ym = parseMonthToYm(r[monthCol]);
+        if (!ym) return;
+        const status = (r[statusCol] || '').trim().toLowerCase();
+        let margin = parseFloat(String(r[marginCol]).replace(/[$,]/g, '')) || 0;
+        const name = (r[nameCol] || '').trim() || 'Unknown';
+        uniqueNames.add(name);
+        allMonths.add(ym);
+        if (status === 'onboarded') {
+          gainByMonth[ym] = (gainByMonth[ym] || 0) + margin;
+          if (!gainBreakdown[ym]) gainBreakdown[ym] = [];
+          gainBreakdown[ym].push({ name, amount: margin });
+        } else if (status === 'offboarded') {
+          const absMargin = Math.abs(margin);
+          lossByMonth[ym] = (lossByMonth[ym] || 0) + absMargin;
+          if (!lossBreakdown[ym]) lossBreakdown[ym] = [];
+          lossBreakdown[ym].push({ name, amount: absMargin });
+        }
+      });
+
+      const sortedMonths = Array.from(allMonths).sort();
+      const byMonth = {};
+      let totalGain = 0, totalLoss = 0;
+      sortedMonths.forEach(ym => {
+        const gain = gainByMonth[ym] || 0;
+        const loss = lossByMonth[ym] || 0;
+        totalGain += gain;
+        totalLoss += loss;
+        const onboardCount = (gainBreakdown[ym] || []).length;
+        const offboardCount = (lossBreakdown[ym] || []).length;
+        byMonth[ym] = {
+          onboardCount,
+          onboardMargin: gain,
+          offboardCount,
+          offboardMargin: loss,
+          netMarginChange: gain - loss
+        };
+      });
+
+      return {
+        deduped: Array.from(uniqueNames).map(n => ({ key: n })),
+        byMonth,
+        sortedMonths,
+        gainBreakdown,
+        lossBreakdown,
+        companies: Array.from(uniqueCompanies).sort(),
+        summary: {
+          totalOnboardMargin: totalGain,
+          totalOffboardMargin: totalLoss,
+          net: totalGain - totalLoss,
+          contractorCount: uniqueNames.size
+        },
+        useNewFormat: true
+      };
+    }
+
+    function processData(csvText, opts) {
+      opts = opts || {};
+      const rows = parseCSV(csvText);
+      if (!rows.length) return { deduped: [], byMonth: {}, summary: {} };
+      const headers = {};
+      const head = rows[0];
+      head.forEach((h, i) => { headers[h] = i; });
+      if (headers['Month'] != null && headers['Status'] != null && headers['Net Margin'] != null) {
+        return processDataNewFormat(rows, headers, opts);
+      }
+      const rateTypeCol = headers['Rate Type'];
+      const INTERNAL_COMPANIES = ['ryz labs', 'hiptrain', 'offsiteio'];
+      const excludeInternal = !!opts.excludeInternal;
+      const companyCol = headers['Company'];
+
+      let dataRows = rows.slice(1)
+        .filter(r => {
+          const rt = (r[rateTypeCol] || '').toLowerCase();
+          return rt !== 'hourly' && rt !== 'monthlyhourly' && rt !== 'weeklyhourly';
+        })
+        .map(r => {
+          const start = parseDate(r[headers['Start Date']]);
+          const company = (r[companyCol] || '').trim();
+          return {
+            key: getKey(r, headers),
+            company: company,
+            start,
+            end: parseDate(r[headers['End Date']]),
+            rate: parseFloat(r[headers['Rate']]) || 0,
+            cost: parseFloat(r[headers['Actual Cost']]) || 0,
+            rateType: (r[headers['Rate Type']] || '').toLowerCase(),
+            margin: monthlyMargin(r, headers)
+          };
+        });
+
+      if (excludeInternal) {
+        dataRows = dataRows.filter(r => !INTERNAL_COMPANIES.includes(r.company.toLowerCase()));
+      }
+
+      // Group all rows by contractor (keep every row for margin timeline / salary updates)
+      const byContractor = {};
+      dataRows.forEach(row => {
+        if (!row.start) return;
+        const k = row.key;
+        if (!byContractor[k]) byContractor[k] = [];
+        byContractor[k].push(row);
+      });
+
+      // Sort each contractor's rows by start (then by end for tie-break)
+      Object.keys(byContractor).forEach(k => {
+        byContractor[k].sort((a, b) => (a.start - b.start) || ((a.end || 0) - (b.end || 0)));
+      });
+
+      function firstDay(ym) {
+        const [y, m] = ym.split('-').map(Number);
+        return new Date(y, m - 1, 1);
+      }
+      function lastDay(ym) {
+        const [y, m] = ym.split('-').map(Number);
+        return new Date(y, m, 0);
+      }
+      // Onboarding: recognize margin in the month they start (any start date in that month counts).
+      // Offboarding: if end date is in a month, recognize the loss in that month (not active that month).
+      // Active in month M = started on or before last day of M, and (no end or end is after last day of M).
+      function rowActiveInMonth(row, ym) {
+        const last = lastDay(ym);
+        if (row.start > last) return false;   // started after this month → not active
+        if (!row.end) return true;           // no end → still active
+        return row.end > last;                // ended after this month → was active; else end in this month → loss in this month
+      }
+
+      const allMonths = new Set();
+      dataRows.forEach(row => {
+        if (row.start) {
+          const ym = row.start.getFullYear() + '-' + String(row.start.getMonth() + 1).padStart(2, '0');
+          allMonths.add(ym);
+        }
+        if (row.end) {
+          const ym = row.end.getFullYear() + '-' + String(row.end.getMonth() + 1).padStart(2, '0');
+          allMonths.add(ym);
+        }
+      });
+      const sortedMonths = Array.from(allMonths).sort();
+
+      // Per contractor per month: effective margin, rate, and whether the *active row* is internal (Ryz Labs, Hiptrain, Offsiteio).
+      // When there is no active row in month M but the next row starts in M+1 (salary update gap), use that row's margin/rate for M so we only recognize the delta, not full offboarding.
+      const marginByContractorMonth = {};
+      const rateByContractorMonth = {};
+      const isInternalByContractorMonth = {};
+      Object.keys(byContractor).forEach(k => {
+        marginByContractorMonth[k] = {};
+        rateByContractorMonth[k] = {};
+        isInternalByContractorMonth[k] = {};
+        sortedMonths.forEach((ym, idx) => {
+          const candidates = byContractor[k].filter(row => rowActiveInMonth(row, ym));
+          if (candidates.length > 0) {
+            const latest = candidates.reduce((best, row) => (row.start >= best.start ? row : best));
+            marginByContractorMonth[k][ym] = latest.margin;
+            rateByContractorMonth[k][ym] = latest.rate || 0;
+            isInternalByContractorMonth[k][ym] = INTERNAL_COMPANIES.includes((latest.company || '').toLowerCase());
+            return;
+          }
+          // No active row in this month: only if the contractor *was* active in the previous month and has a row starting next month (salary-update gap), use that row here so we recognize the delta, not full offboarding. If they were not active in M-1, it's a new hire in M+1 — do not attribute to M.
+          const prevYm = idx > 0 ? sortedMonths[idx - 1] : null;
+          const hadActiveInPrev = prevYm ? byContractor[k].some(row => rowActiveInMonth(row, prevYm)) : false;
+          const nextYm = idx + 1 < sortedMonths.length ? sortedMonths[idx + 1] : null;
+          if (nextYm && hadActiveInPrev) {
+            const nextFirst = firstDay(nextYm);
+            const nextLast = lastDay(nextYm);
+            const incoming = byContractor[k].filter(row => row.start && row.start >= nextFirst && row.start <= nextLast);
+            if (incoming.length > 0) {
+              const row = incoming.reduce((best, r) => (!best || r.start < best.start ? r : best), null);
+              if (row) {
+                marginByContractorMonth[k][ym] = row.margin;
+                rateByContractorMonth[k][ym] = row.rate || 0;
+                isInternalByContractorMonth[k][ym] = INTERNAL_COMPANIES.includes((row.company || '').toLowerCase());
+                return;
+              }
+            }
+          }
+          marginByContractorMonth[k][ym] = 0;
+          rateByContractorMonth[k][ym] = 0;
+          isInternalByContractorMonth[k][ym] = false;
+        });
+      });
+
+      // Per month: in months when active row is internal use rate deltas (loss/gain); otherwise use margin deltas.
+      // Also build per-month breakdown: who contributed to gain and who to loss (name + amount)
+      const byMonth = {};
+      const gainBreakdown = {};
+      const lossBreakdown = {};
+      sortedMonths.forEach((ym, i) => {
+        const prevYm = i > 0 ? sortedMonths[i - 1] : null;
+        let gain = 0, loss = 0;
+        gainBreakdown[ym] = [];
+        lossBreakdown[ym] = [];
+        Object.keys(marginByContractorMonth).forEach(k => {
+          const currInternal = isInternalByContractorMonth[k][ym];
+          const prevInternal = prevYm ? isInternalByContractorMonth[k][prevYm] : false;
+          // Use internal (rate) logic only when *current* month's active row is internal. When no active row (offboarded), use margin logic.
+          if (currInternal) {
+            const currRate = rateByContractorMonth[k][ym] || 0;
+            const prevRate = prevYm ? (rateByContractorMonth[k][prevYm] || 0) : 0;
+            const delta = currRate - prevRate;
+            if (delta > 0) {
+              loss += delta;
+              lossBreakdown[ym].push({ name: k, amount: delta });
+            } else if (delta < 0) {
+              const absDelta = Math.abs(delta);
+              gain += absDelta;
+              gainBreakdown[ym].push({ name: k, amount: absDelta });
+            }
+          } else {
+            const curr = marginByContractorMonth[k][ym] || 0;
+            const prev = prevYm ? (marginByContractorMonth[k][prevYm] || 0) : 0;
+            const delta = curr - prev;
+            if (delta > 0) {
+              gain += delta;
+              gainBreakdown[ym].push({ name: k, amount: delta });
+            } else if (delta < 0) {
+              const absDelta = Math.abs(delta);
+              loss += absDelta;
+              lossBreakdown[ym].push({ name: k, amount: absDelta });
+            }
+          }
+        });
+        byMonth[ym] = {
+          onboardCount: (gainBreakdown[ym] || []).length,
+          onboardMargin: gain,
+          offboardCount: (lossBreakdown[ym] || []).length,
+          offboardMargin: loss,
+          netMarginChange: gain - loss
+        };
+      });
+
+      let totalGain = 0, totalLoss = 0;
+      Object.values(byMonth).forEach(m => {
+        totalGain += m.onboardMargin;
+        totalLoss += m.offboardMargin;
+      });
+
+      const uniqueContractors = Object.keys(byContractor).length;
+      const deduped = Object.keys(byContractor).map(k => {
+        const rows = byContractor[k];
+        return rows.reduce((best, r) => (!best || r.start < best.start ? r : best), null);
+      }).filter(Boolean);
+
+      return {
+        deduped,
+        byMonth,
+        sortedMonths,
+        gainBreakdown,
+        lossBreakdown,
+        summary: {
+          totalOnboardMargin: totalGain,
+          totalOffboardMargin: totalLoss,
+          net: totalGain - totalLoss,
+          contractorCount: uniqueContractors
+        }
+      };
+    }
+
+    function escapeHtml(s) {
+      if (s == null) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function formatBreakdownHtml(items, isLoss) {
+      if (!items || !items.length) return '<div class="breakdown-title">No items</div>';
+      const prefix = isLoss ? '-' : '';
+      let total = 0;
+      const lines = items.map(item => {
+        const amt = Math.round(item.amount);
+        total += isLoss ? -amt : amt;
+        const name = escapeHtml(item.name);
+        const formatted = (prefix && amt > 0 ? '-' : '') + '$' + amt.toLocaleString();
+        return '<div class="breakdown-line">' + name + ' ' + formatted + '</div>';
+      });
+      const totalFormatted = (total >= 0 ? '' : '-') + '$' + Math.abs(total).toLocaleString();
+      return '<div class="breakdown-title">Breakdown by person</div>' +
+        lines.join('') +
+        '<div class="breakdown-total">Total ' + totalFormatted + '</div>';
+    }
+
+    function formatMoney(n) {
+      if (n >= 0) return '$' + Math.round(n).toLocaleString();
+      return '-$' + Math.round(-n).toLocaleString();
+    }
+
+    let lastProcessed = null;
+    let lastFilteredMonthsForChart = null;
+    let filterListenersAttached = false;
+    let authListenersAttached = false;
+    let dashboardInitialized = false;
+
+    function isAuthenticated() {
+      return window.sessionStorage.getItem(AUTH_STORAGE_KEY) === 'ok';
+    }
+
+    function showDashboard() {
+      const authGate = document.getElementById('authGate');
+      const dashboardApp = document.getElementById('dashboardApp');
+      if (authGate) authGate.style.display = 'none';
+      if (dashboardApp) dashboardApp.style.display = 'block';
+    }
+
+    function showAuthGate() {
+      const authGate = document.getElementById('authGate');
+      const dashboardApp = document.getElementById('dashboardApp');
+      if (authGate) authGate.style.display = 'flex';
+      if (dashboardApp) dashboardApp.style.display = 'none';
+    }
+
+    function attachAuthListeners() {
+      if (authListenersAttached) return;
+      authListenersAttached = true;
+      const form = document.getElementById('authForm');
+      const input = document.getElementById('authPassword');
+      const error = document.getElementById('authError');
+      if (!form || !input || !error) return;
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (input.value === DASHBOARD_PASSWORD) {
+          window.sessionStorage.setItem(AUTH_STORAGE_KEY, 'ok');
+          error.textContent = '';
+          input.value = '';
+          initDashboard();
+        } else {
+          error.textContent = 'Incorrect password.';
+          input.select();
+        }
+      });
+    }
+
+    function initDashboard() {
+      showDashboard();
+      if (dashboardInitialized) return;
+      dashboardInitialized = true;
+      const csvText = typeof window.TALENT_POOL_CSV === 'string' ? window.TALENT_POOL_CSV : '';
+      if (csvText.trim()) {
+        run(csvText);
+      } else {
+        document.getElementById('status').innerHTML = 'No data. Change the CSV in <strong>config.json</strong> (csvPath) and run: <code>node update-data.js</code> or <code>python3 update_data.py</code>. Then reload this page.';
+      }
+      const exc = document.getElementById('excludeInternal');
+      if (exc) exc.addEventListener('change', runWithLastData);
+      attachBreakdownPositionListener();
+    }
+
+    function applyPeriodFilter() {
+      if (!lastProcessed || !lastProcessed.byMonth) return;
+      const { byMonth, summary, gainBreakdown = {}, lossBreakdown = {} } = lastProcessed;
+      const allMonths = lastProcessed.sortedMonths && lastProcessed.sortedMonths.length ? lastProcessed.sortedMonths : Object.keys(byMonth).sort();
+      const filterFrom = document.getElementById('filterFrom');
+      const filterTo = document.getElementById('filterTo');
+      const fromVal = filterFrom && filterFrom.value;
+      const toVal = filterTo && filterTo.value;
+      const months = (!fromVal || !toVal) ? allMonths : allMonths.filter(ym => ym >= fromVal && ym <= toVal);
+      let totalOn = 0, totalOff = 0;
+      months.forEach(ym => {
+        const m = byMonth[ym];
+        if (!m) return;
+        totalOn += m.onboardMargin || 0;
+        totalOff += m.offboardMargin || 0;
+      });
+      const net = totalOn - totalOff;
+
+      const netEl = document.getElementById('totalNet');
+      netEl.textContent = formatMoney(net);
+      netEl.className = 'value ' + (net >= 0 ? 'positive' : 'negative');
+      document.getElementById('summaryCards').style.display = 'grid';
+
+      lastFilteredMonthsForChart = months;
+      const labels = months.map(ym => {
+        const [y, m] = ym.split('-');
+        return MONTHS[parseInt(m, 10) - 1] + ' ' + y;
+      });
+      const gains = months.map(ym => byMonth[ym].onboardMargin ?? 0);
+      const losses = months.map(ym => byMonth[ym].offboardMargin ?? 0);
+      const nets = months.map(ym => (byMonth[ym].netMarginChange != null ? byMonth[ym].netMarginChange : ((byMonth[ym].onboardMargin ?? 0) - (byMonth[ym].offboardMargin ?? 0))));
+
+      const ctx = document.getElementById('chart').getContext('2d');
+      if (window.marginChart) window.marginChart.destroy();
+      window.marginChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Margin gain', data: gains, backgroundColor: 'rgba(63, 185, 80, 0.7)', borderColor: '#3fb950', borderWidth: 1 },
+            { label: 'Margin loss', data: losses.map(x => -x), backgroundColor: 'rgba(248, 81, 73, 0.7)', borderColor: '#f85149', borderWidth: 1 },
+            { label: 'Net margin', data: nets, type: 'line', borderColor: '#58a6ff', backgroundColor: 'rgba(88, 166, 255, 0.1)', fill: true, tension: 0.2, pointRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                afterBody: function (tooltipItems) {
+                  if (!tooltipItems || !tooltipItems.length) return '';
+                  const months = lastFilteredMonthsForChart;
+                  if (!months || !lastProcessed || !lastProcessed.byMonth) return '';
+                  const idx = tooltipItems[0].dataIndex;
+                  const ym = months[idx];
+                  const m = lastProcessed.byMonth[ym];
+                  if (!m) return '';
+                  const on = m.onboardCount || 0;
+                  const off = m.offboardCount || 0;
+                  const growth = on - off;
+                  return '\nContractor growth: ' + (growth >= 0 ? '+' : '') + growth;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.06)' } },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              ticks: { callback: v => (v >= 0 ? '' : '-') + '$' + Math.round(Math.abs(v) / 1000) + 'k' }
+            }
+          }
+        }
+      });
+      document.getElementById('chartWrap').style.display = 'block';
+
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = months.map(ym => {
+        const m = byMonth[ym];
+        const gain = m.onboardMargin ?? 0;
+        const loss = m.offboardMargin ?? 0;
+        const net = m.netMarginChange != null ? m.netMarginChange : (gain - loss);
+        const [y, mo] = ym.split('-');
+        const label = MONTHS[parseInt(mo, 10) - 1] + ' ' + y;
+        const gainItems = gainBreakdown[ym] || [];
+        const lossItems = lossBreakdown[ym] || [];
+        const gainPopover = '<span class="breakdown-popover">' + formatBreakdownHtml(gainItems, false) + '</span>';
+        const lossPopover = '<span class="breakdown-popover">' + formatBreakdownHtml(lossItems, true) + '</span>';
+        const onCount = m.onboardCount ?? 0;
+        const offCount = m.offboardCount ?? 0;
+        const growth = onCount - offCount;
+        const growthStr = (growth >= 0 ? '+' : '') + growth;
+        const growthClass = growth >= 0 ? 'positive' : 'negative';
+        return '<tr>' +
+          '<td>' + label + '</td>' +
+          '<td class="num positive"><span class="cell-with-breakdown">' + formatMoney(gain) + gainPopover + '</span></td>' +
+          '<td class="num negative"><span class="cell-with-breakdown">' + formatMoney(loss) + lossPopover + '</span></td>' +
+          '<td class="num ' + growthClass + '">' + growthStr + '</td>' +
+          '<td class="num ' + (net >= 0 ? 'positive' : 'negative') + '">' + formatMoney(net) + '</td>' +
+          '</tr>';
+      }).join('');
+      document.getElementById('tableWrap').style.display = 'block';
+      attachBreakdownCenterPopover();
+    }
+
+    let breakdownHideTimeout = null;
+    let centerPopoverListenersAttached = false;
+    function attachBreakdownCenterPopover() {
+      const tableWrap = document.getElementById('tableWrap');
+      const center = document.getElementById('breakdown-popover-center');
+      if (!tableWrap || !center) return;
+      const cells = tableWrap.querySelectorAll('.cell-with-breakdown');
+      cells.forEach(cell => {
+        cell.addEventListener('mouseenter', function () {
+          const popover = cell.querySelector('.breakdown-popover');
+          if (popover && popover.innerHTML.trim()) {
+            center.innerHTML = popover.innerHTML;
+            center.classList.add('visible');
+            center.setAttribute('aria-hidden', 'false');
+          }
+          if (breakdownHideTimeout) clearTimeout(breakdownHideTimeout);
+        });
+        cell.addEventListener('mouseleave', function () {
+          breakdownHideTimeout = setTimeout(function () {
+            center.classList.remove('visible');
+            center.setAttribute('aria-hidden', 'true');
+          }, 200);
+        });
+      });
+      if (!centerPopoverListenersAttached) {
+        centerPopoverListenersAttached = true;
+        center.addEventListener('mouseenter', function () {
+          if (breakdownHideTimeout) clearTimeout(breakdownHideTimeout);
+        });
+        center.addEventListener('mouseleave', function () {
+          center.classList.remove('visible');
+          center.setAttribute('aria-hidden', 'true');
+        });
+      }
+    }
+
+    function attachBreakdownPositionListener() {
+      const tbody = document.getElementById('tableBody');
+      if (!tbody || breakdownPositionListenerAttached) return;
+      breakdownPositionListenerAttached = true;
+    }
+
+    let companyFilterListenerAttached = false;
+    function render(processed) {
+      if (!processed || !processed.byMonth) return;
+      lastProcessed = processed;
+      const { byMonth, summary, sortedMonths, companies: companyList } = processed;
+      const allMonths = sortedMonths && sortedMonths.length ? sortedMonths : Object.keys(byMonth).sort();
+
+      const companyWrap = document.getElementById('companyFilterWrap');
+      const trigger = document.getElementById('companyFilterTrigger');
+      const dropdown = document.getElementById('companyFilterDropdown');
+      const listEl = document.getElementById('companyFilterList');
+      const allCb = document.getElementById('companyFilterAll');
+      const searchInput = document.getElementById('companySearch');
+      if (companyWrap && trigger && dropdown && listEl && companyList && companyList.length) {
+        companyWrap.classList.add('visible');
+        const selected = getSelectedCompanies();
+        const selectedSet = new Set(selected);
+        listEl.innerHTML = companyList.map(c => {
+          const s = String(c);
+          const esc = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+          const checked = selectedSet.has(s) ? ' checked' : '';
+          return '<label class="company-filter-item" data-company="' + esc + '"><input type="checkbox" value="' + esc + '"' + checked + '><span class="company-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></span><span class="company-name">' + esc + '</span></label>';
+        }).join('');
+        if (allCb) {
+          allCb.checked = selected.length === 0;
+          allCb.onchange = function () {
+            if (allCb.checked) {
+              listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+              runWithLastData();
+            }
+          };
+        }
+        listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.onchange = function () {
+            if (allCb) allCb.checked = false;
+            runWithLastData();
+          };
+        });
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.oninput = function () {
+            const q = (searchInput.value || '').trim().toLowerCase();
+            listEl.querySelectorAll('.company-filter-item').forEach(item => {
+              const name = (item.querySelector('.company-name') || item).textContent || '';
+              item.style.display = q && name.toLowerCase().indexOf(q) < 0 ? 'none' : '';
+            });
+          };
+        }
+        if (!companyFilterListenerAttached) {
+          companyFilterListenerAttached = true;
+          trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+            trigger.setAttribute('aria-expanded', dropdown.classList.contains('open'));
+            if (dropdown.classList.contains('open')) searchInput && searchInput.focus();
+          });
+          document.addEventListener('click', function () {
+            dropdown.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+          });
+          dropdown.addEventListener('click', function (e) { e.stopPropagation(); });
+        }
+      }
+
+      const filterFrom = document.getElementById('filterFrom');
+      const filterTo = document.getElementById('filterTo');
+      if (filterFrom && filterTo) {
+        filterFrom.innerHTML = allMonths.map(ym => {
+          const [y, m] = ym.split('-');
+          return '<option value="' + ym + '">' + MONTHS[parseInt(m, 10) - 1] + ' ' + y + '</option>';
+        }).join('');
+        filterTo.innerHTML = filterFrom.innerHTML;
+        if (allMonths.length) {
+          filterFrom.value = allMonths[0];
+          filterTo.value = allMonths[allMonths.length - 1];
+        }
+        if (!filterListenersAttached) {
+          filterListenersAttached = true;
+          filterFrom.addEventListener('change', applyPeriodFilter);
+          filterTo.addEventListener('change', applyPeriodFilter);
+        }
+      }
+      applyPeriodFilter();
+    }
+
+    let lastCsvText = null;
+    function getSelectedCompanies() {
+      const allCb = document.getElementById('companyFilterAll');
+      if (allCb && allCb.checked) return [];
+      const list = document.getElementById('companyFilterList');
+      if (!list) return [];
+      return Array.from(list.querySelectorAll('input[type="checkbox"]'))
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+    }
+    function run(csvText) {
+      if (typeof csvText !== 'string' || !csvText.trim()) return;
+      lastCsvText = csvText;
+      const excludeInternal = document.getElementById('excludeInternal') && document.getElementById('excludeInternal').checked;
+      const companies = getSelectedCompanies();
+      try {
+        const processed = processData(csvText, { excludeInternal: excludeInternal, companies: companies.length ? companies : undefined });
+        const wrap = document.getElementById('excludeInternalWrap');
+        if (wrap) wrap.style.display = processed.useNewFormat ? 'none' : 'inline-flex';
+        document.getElementById('status').textContent = processed.useNewFormat
+          ? 'Processed. Onboarded = margin gained (green), Offboarded = margin lost (red).'
+          : 'Processed. Margin by month = change from prior month.' + (excludeInternal ? ' Internal excluded.' : '');
+        render(processed);
+      } catch (e) {
+        document.getElementById('status').textContent = 'Error: ' + (e && e.message ? e.message : String(e));
+      }
+    }
+    function runWithLastData() {
+      if (lastCsvText) run(lastCsvText);
+    }
+
+    window.addEventListener('message', function (event) {
+      if (event.data && event.data.type === 'finconsolidated-auth' && event.data.unlocked === true) {
+        try {
+          window.sessionStorage.setItem(AUTH_STORAGE_KEY, 'ok');
+          initDashboard();
+        } catch (_) {}
+      }
+    });
+
+    function init() {
+      attachAuthListeners();
+      if (isAuthenticated()) {
+        initDashboard();
+      } else {
+        showAuthGate();
+        const input = document.getElementById('authPassword');
+        if (input) input.focus();
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>

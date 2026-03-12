@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Production
+dist/
+build/
+
+# Misc
+.DS_Store
+.env
+.env.local
+.env.*.local
+*.log
+
+# Inner repos (consolidated app is the main repo)
+Cashflow/.git
+Net Income Project/.git
+GP Analysis/.git

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Flow Dashboard - Standalone</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.10.3/dist/Recharts.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } = Recharts;
+
+        // CSV data processing functions
+        function parseAmount(amountStr) {
+            if (!amountStr) return 0;
+            const cleaned = amountStr.replace(/[$,]/g, '');
+            return parseFloat(cleaned) || 0;
+        }
+
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            const date = new Date(dateStr);
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        function getStatusCategory(status) {
+            if (status === 'PAID') return 'paid';
+            if (status === 'OVERDUE') return 'overdue';
+            return 'upcoming';
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const nextChar = line[i + 1];
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        function processCSVData(csvText) {
+            const lines = csvText.split('\n').filter(line => line.trim());
+            if (lines.length < 2) return [];
+            const headers = parseCSVLine(lines[0]);
+            const clientIdx = headers.findIndex(h => h.toLowerCase().includes('client'));
+            const dueDateIdx = headers.findIndex(h => h.toLowerCase().includes('due date'));
+            const amountIdx = headers.findIndex(h => h.toLowerCase().includes('total amount'));
+            const statusIdx = headers.findIndex(h => h.toLowerCase().includes('status'));
+            if (clientIdx === -1 || dueDateIdx === -1 || amountIdx === -1 || statusIdx === -1) return [];
+            
+            const invoices = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                const row = parseCSVLine(line);
+                if (row.length <= Math.max(clientIdx, dueDateIdx, amountIdx, statusIdx)) continue;
+                const client = row[clientIdx]?.trim() || '';
+                const dueDateStr = row[dueDateIdx]?.trim() || '';
+                const amountStr = row[amountIdx]?.trim() || '';
+                const status = row[statusIdx]?.trim() || '';
+                if (!client || !dueDateStr || !amountStr) continue;
+                const dueDate = parseDate(dueDateStr);
+                if (!dueDate) continue;
+                const amount = parseAmount(amountStr);
+                if (isNaN(amount)) continue;
+                invoices.push({
+                    client,
+                    dueDate,
+                    amount: Math.abs(amount),
+                    status: status.toUpperCase(),
+                    statusCategory: getStatusCategory(status.toUpperCase()),
+                });
+            }
+            return invoices;
+        }
+
+        function groupInvoicesByDay(invoices, currentMonth = null) {
+            const today = new Date();
+            const month = currentMonth !== null && currentMonth !== undefined ? currentMonth : today.getMonth();
+            const year = today.getFullYear();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const dayData = {};
+            for (let day = 1; day <= daysInMonth; day++) {
+                dayData[day] = { day, paid: 0, overdue: 0, upcoming: 0, invoices: [] };
+            }
+            invoices.forEach(invoice => {
+                const invoiceDate = new Date(invoice.dueDate);
+                if (invoiceDate.getMonth() === month && invoiceDate.getFullYear() === year) {
+                    const day = invoiceDate.getDate();
+                    if (dayData[day]) {
+                        dayData[day].invoices.push(invoice);
+                        dayData[day][invoice.statusCategory] += invoice.amount;
+                    }
+                }
+            });
+            return Object.values(dayData).map(day => ({
+                ...day,
+                total: day.paid + day.overdue + day.upcoming,
+            }));
+        }
+
+        // Custom Tooltip Component
+        function CustomTooltip({ active, payload, label }) {
+            if (!active || !payload || !payload.length) return null;
+            const data = payload[0].payload;
+            if (!data || !data.invoices || data.invoices.length === 0) return null;
+            
+            const today = new Date();
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthName = monthNames[today.getMonth()];
+            const dateLabel = `${monthName} ${label}`;
+            
+            const formatCurrency = (amount) => {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                }).format(amount);
+            };
+            
+            const getStatusInfo = (status) => {
+                switch (status) {
+                    case 'PAID': return { label: 'Paid', color: 'bg-green-100 text-green-700' };
+                    case 'OVERDUE': return { label: 'Overdue', color: 'bg-red-100 text-red-700' };
+                    default: return { label: 'Upcoming', color: 'bg-gray-100 text-gray-700' };
+                }
+            };
+            
+            const groupedInvoices = data.invoices.reduce((acc, invoice) => {
+                const statusInfo = getStatusInfo(invoice.status);
+                if (!acc[invoice.status]) {
+                    acc[invoice.status] = { statusInfo, invoices: [], total: 0 };
+                }
+                acc[invoice.status].invoices.push(invoice);
+                acc[invoice.status].total += invoice.amount;
+                return acc;
+            }, {});
+            
+            return React.createElement('div', {
+                className: 'bg-white rounded-lg shadow-xl border border-gray-200 p-4 min-w-[300px] max-w-[400px]'
+            }, [
+                React.createElement('div', {
+                    key: 'header',
+                    className: 'text-sm font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200'
+                }, dateLabel),
+                React.createElement('div', {
+                    key: 'content',
+                    className: 'space-y-2 max-h-[300px] overflow-y-auto'
+                }, Object.entries(groupedInvoices).map(([status, group]) =>
+                    React.createElement('div', { key: status, className: 'space-y-1.5' },
+                        group.invoices.map((invoice, idx) =>
+                            React.createElement('div', {
+                                key: idx,
+                                className: 'flex items-center justify-between text-sm py-1'
+                            }, [
+                                React.createElement('span', {
+                                    key: 'client',
+                                    className: 'text-gray-700 truncate font-medium flex-1'
+                                }, invoice.client),
+                                React.createElement('div', {
+                                    key: 'amount',
+                                    className: 'flex items-center gap-2 ml-3 flex-shrink-0'
+                                }, [
+                                    React.createElement('span', {
+                                        key: 'value',
+                                        className: 'text-gray-900 font-semibold whitespace-nowrap'
+                                    }, formatCurrency(invoice.amount)),
+                                    React.createElement('span', {
+                                        key: 'status',
+                                        className: `px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ${group.statusInfo.color}`
+                                    }, group.statusInfo.label)
+                                ])
+                            ])
+                        )
+                    )
+                )),
+                React.createElement('div', {
+                    key: 'total',
+                    className: 'mt-3 pt-3 border-t border-gray-200'
+                }, React.createElement('div', {
+                    className: 'flex items-center justify-between text-sm font-semibold'
+                }, [
+                    React.createElement('span', { key: 'label', className: 'text-gray-700' }, 'Total'),
+                    React.createElement('span', { key: 'value', className: 'text-gray-900 text-base' }, formatCurrency(data.total))
+                ]))
+            ]);
+        }
+
+        // Main App Component
+        function App() {
+            const [data, setData] = useState('');
+            const [csvData, setCsvData] = useState('');
+
+            useEffect(() => {
+                fetch('./db.csv')
+                    .then(res => res.text())
+                    .then(text => {
+                        setCsvData(text);
+                        setData(text);
+                    })
+                    .catch(err => {
+                        console.error('Error loading CSV:', err);
+                        alert('Could not load db.csv. Please make sure it is in the same directory as this HTML file.');
+                    });
+            }, []);
+
+            const chartData = useMemo(() => {
+                if (!csvData) return [];
+                const invoices = processCSVData(csvData);
+                const today = new Date();
+                const month = today.getMonth();
+                return groupInvoicesByDay(invoices, month);
+            }, [csvData]);
+
+            const today = new Date();
+            const currentDay = today.getDate();
+            const isCurrentMonth = true;
+
+            const formatCurrency = (value) => {
+                if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+                if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
+                return `$${value.toFixed(0)}`;
+            };
+
+            if (!data) {
+                return React.createElement('div', {
+                    className: 'min-h-screen bg-gray-50 p-8 flex items-center justify-center'
+                }, React.createElement('div', { className: 'text-gray-500' }, 'Loading...'));
+            }
+
+            return React.createElement('div', {
+                className: 'min-h-screen bg-gray-50 p-8'
+            }, React.createElement('div', {
+                className: 'max-w-7xl mx-auto'
+            }, React.createElement('div', {
+                className: 'w-full h-full p-6 bg-white rounded-lg shadow-sm'
+            }, [
+                React.createElement('h2', {
+                    key: 'title',
+                    className: 'text-xl font-semibold text-gray-800 mb-6'
+                }, 'Payment Timeline'),
+                React.createElement(ResponsiveContainer, {
+                    key: 'chart',
+                    width: '100%',
+                    height: 400
+                }, React.createElement(BarChart, {
+                    data: chartData,
+                    margin: { top: 20, right: 30, left: 20, bottom: 20 },
+                    barCategoryGap: '10%'
+                }, [
+                    React.createElement(CartesianGrid, {
+                        key: 'grid',
+                        strokeDasharray: '3 3',
+                        stroke: '#e5e7eb',
+                        vertical: false
+                    }),
+                    React.createElement(XAxis, {
+                        key: 'xaxis',
+                        dataKey: 'day',
+                        axisLine: false,
+                        tickLine: false,
+                        tick: { fill: '#6b7280', fontSize: 11 },
+                        interval: 2
+                    }),
+                    React.createElement(YAxis, {
+                        key: 'yaxis',
+                        axisLine: false,
+                        tickLine: false,
+                        tick: { fill: '#6b7280', fontSize: 12 },
+                        tickFormatter: formatCurrency
+                    }),
+                    React.createElement(Tooltip, {
+                        key: 'tooltip',
+                        content: React.createElement(CustomTooltip)
+                    }),
+                    isCurrentMonth && React.createElement(ReferenceLine, {
+                        key: 'today',
+                        x: currentDay,
+                        stroke: '#3b82f6',
+                        strokeDasharray: '5 5',
+                        strokeWidth: 2,
+                        label: { value: 'TODAY', position: 'top', fill: '#3b82f6', fontSize: 12 }
+                    }),
+                    React.createElement(Bar, {
+                        key: 'paid',
+                        dataKey: 'paid',
+                        stackId: 'a',
+                        fill: '#a7f3d0',
+                        radius: [0, 0, 0, 0]
+                    }),
+                    React.createElement(Bar, {
+                        key: 'overdue',
+                        dataKey: 'overdue',
+                        stackId: 'a',
+                        fill: '#fda4af',
+                        radius: [0, 0, 0, 0]
+                    }),
+                    React.createElement(Bar, {
+                        key: 'upcoming',
+                        dataKey: 'upcoming',
+                        stackId: 'a',
+                        fill: '#e5e7eb',
+                        radius: [6, 6, 0, 0]
+                    })
+                ])),
+                React.createElement('div', {
+                    key: 'legend',
+                    className: 'flex items-center justify-center gap-6 mt-6'
+                }, [
+                    React.createElement('div', {
+                        key: 'paid',
+                        className: 'flex items-center gap-2'
+                    }, [
+                        React.createElement('div', {
+                            key: 'color',
+                            className: 'w-4 h-4 rounded bg-[#a7f3d0]'
+                        }),
+                        React.createElement('span', {
+                            key: 'label',
+                            className: 'text-sm text-gray-600'
+                        }, 'Paid')
+                    ]),
+                    React.createElement('div', {
+                        key: 'overdue',
+                        className: 'flex items-center gap-2'
+                    }, [
+                        React.createElement('div', {
+                            key: 'color',
+                            className: 'w-4 h-4 rounded bg-[#fda4af]'
+                        }),
+                        React.createElement('span', {
+                            key: 'label',
+                            className: 'text-sm text-gray-600'
+                        }, 'Overdue')
+                    ]),
+                    React.createElement('div', {
+                        key: 'upcoming',
+                        className: 'flex items-center gap-2'
+                    }, [
+                        React.createElement('div', {
+                            key: 'color',
+                            className: 'w-4 h-4 rounded bg-[#e5e7eb]'
+                        }),
+                        React.createElement('span', {
+                            key: 'label',
+                            className: 'text-sm text-gray-600'
+                        }, 'Upcoming')
+                    ])
+                ])
+            ]))));
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</body>
+</html>
+
+
+
