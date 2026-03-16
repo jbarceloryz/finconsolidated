@@ -3,15 +3,15 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { processCSVData, groupInvoicesByDay } from '../utils/processCSV';
 import CustomTooltip from './CustomTooltip';
 
-const PaymentTimeline = ({ csvData, currentMonth = null, currentYear = null, onMonthChange = null, onYearChange = null }) => {
+const PaymentTimeline = ({ invoices: invoicesProp, csvData, currentMonth = null, currentYear = null, onMonthChange = null, onYearChange = null }) => {
+  const invoices = invoicesProp ?? (csvData ? processCSVData(csvData) : [])
   const chartData = useMemo(() => {
-    if (!csvData) return [];
-    const invoices = processCSVData(csvData);
+    if (!invoices.length) return [];
     const today = new Date();
     const month = currentMonth !== null && currentMonth !== undefined ? currentMonth : today.getMonth();
     const year = currentYear !== null && currentYear !== undefined ? currentYear : today.getFullYear();
     return groupInvoicesByDay(invoices, month, year);
-  }, [csvData, currentMonth, currentYear]);
+  }, [invoices, currentMonth, currentYear]);
 
   const today = new Date();
   const currentDay = today.getDate();

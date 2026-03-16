@@ -1,14 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { processCSVData, normalizeStatus } from '../utils/processCSV';
 
-const InvoiceTable = ({ csvData, currentMonth = null, currentYear = null }) => {
+const InvoiceTable = ({ invoices: invoicesProp, csvData, currentMonth = null, currentYear = null }) => {
   const [sortBy, setSortBy] = useState('dueDate');
   const [sortOrder, setSortOrder] = useState('asc');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  const allInvoices = invoicesProp ?? (csvData ? processCSVData(csvData) : [])
   const invoices = useMemo(() => {
-    if (!csvData) return [];
-    const allInvoices = processCSVData(csvData);
+    if (!allInvoices.length) return [];
     const today = new Date();
     const selectedMonth = currentMonth !== null && currentMonth !== undefined ? currentMonth : today.getMonth();
     const selectedYear = currentYear !== null && currentYear !== undefined ? currentYear : today.getFullYear();
@@ -16,7 +16,7 @@ const InvoiceTable = ({ csvData, currentMonth = null, currentYear = null }) => {
       const dueDate = new Date(invoice.dueDate);
       return dueDate.getMonth() === selectedMonth && dueDate.getFullYear() === selectedYear;
     });
-  }, [csvData, currentMonth, currentYear]);
+  }, [allInvoices, currentMonth, currentYear]);
 
   const filteredAndSorted = useMemo(() => {
     let filtered = [...invoices];

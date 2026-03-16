@@ -10,6 +10,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { parseFinancialCsv, getChartData } from '../dashboards/netincome/utils/parseFinancialCsv'
+import { fetchNetIncomeFromSupabase } from '../lib/netIncomeData'
 
 const TABLE_COLUMNS = [
   { key: 'Ryz Labs LLC', label: 'Ryz Labs LLC' },
@@ -60,31 +61,35 @@ function pctChange(curr, prev) {
 }
 
 export default function NetIncomeDashboard() {
-  const [csvContent, setCsvContent] = useState('')
+  const [parsed, setParsed] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const parsed = useMemo(() => {
-    if (!csvContent || !csvContent.trim()) return null
-    try {
-      return parseFinancialCsv(csvContent)
-    } catch (e) {
-      return null
-    }
-  }, [csvContent])
-
   useEffect(() => {
-    fetch('/net-income-data.csv', { cache: 'no-store' })
-      .then((r) => {
-        if (!r.ok) throw new Error('Failed to load Net Income data')
-        return r.text()
-      })
-      .then((text) => {
-        setCsvContent(text)
-        setIsLoading(false)
+    setLoadError(null)
+    fetchNetIncomeFromSupabase()
+      .then((fromSupabase) => {
+        if (fromSupabase !== null) {
+          setParsed(fromSupabase)
+          setIsLoading(false)
+          return
+        }
+        return fetch('/net-income-data.csv', { cache: 'no-store' })
+          .then((r) => {
+            if (!r.ok) throw new Error('Failed to load Net Income data')
+            return r.text()
+          })
+          .then((text) => {
+            try {
+              setParsed(parseFinancialCsv(text))
+            } catch (e) {
+              setLoadError('Failed to parse CSV')
+            }
+            setIsLoading(false)
+          })
       })
       .catch((err) => {
-        setLoadError(err.message || 'Failed to load data')
+        setLoadError(err?.message || 'Failed to load data')
         setIsLoading(false)
       })
   }, [])
@@ -94,7 +99,7 @@ export default function NetIncomeDashboard() {
       <div className="p-8 flex items-center justify-center min-h-[40vh]">
         <div className="text-center max-w-md">
           <p className="text-red-400 mb-4">{loadError}</p>
-          <p className="text-slate-500 text-sm">Ensure <code className="bg-slate-800 px-1 rounded">Net Income Project/src/assets/data.csv</code> exists (dev). For production, copy it to <code className="bg-slate-800 px-1 rounded">public/net-income-data.csv</code>.</p>
+          <p className="text-slate-500 text-sm">If using Supabase, check <code className="bg-slate-800 px-1 rounded">.env</code> and tables <code className="bg-slate-800 px-1 rounded">net_income_metrics</code>, <code className="bg-slate-800 px-1 rounded">net_income_hc_projected</code>, <code className="bg-slate-800 px-1 rounded">net_income_variance</code>. Otherwise ensure Net Income CSV is available at <code className="bg-slate-800 px-1 rounded">/net-income-data.csv</code>.</p>
         </div>
       </div>
     )

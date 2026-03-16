@@ -4,41 +4,52 @@ import SummaryCards from '../dashboards/cashflow/components/SummaryCards'
 import InvoiceTable from '../dashboards/cashflow/components/InvoiceTable'
 import MonthFilter from '../dashboards/cashflow/components/MonthFilter'
 import CashFlowSimulator from '../dashboards/cashflow/components/CashFlowSimulator'
+import { fetchCashflowFromSupabase } from '../lib/cashflowData'
+import { processCSVData } from '../dashboards/cashflow/utils/processCSV'
 
 export default function CashflowDashboard() {
-  const [data, setData] = useState('')
+  const [invoices, setInvoices] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const today = new Date()
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth())
   const [selectedYear, setSelectedYear] = useState(today.getFullYear())
 
-  const loadCSVData = () => {
+  const loadData = () => {
     setIsLoading(true)
     setLoadError(null)
-    const timestamp = new Date().getTime()
-    const r = Math.random().toString(36).slice(2)
-    fetch(`/db.csv?t=${timestamp}&r=${r}`, {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load CSV')
-        return res.text()
-      })
-      .then((text) => {
-        setData(text)
-        setIsLoading(false)
+    // Prefer Supabase when configured
+    fetchCashflowFromSupabase()
+      .then((fromSupabase) => {
+        if (fromSupabase !== null) {
+          setInvoices(fromSupabase)
+          setIsLoading(false)
+          return
+        }
+        const timestamp = new Date().getTime()
+        const r = Math.random().toString(36).slice(2)
+        return fetch(`/db.csv?t=${timestamp}&r=${r}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error('Failed to load CSV')
+            return res.text()
+          })
+          .then((text) => {
+            setInvoices(processCSVData(text))
+            setIsLoading(false)
+          })
       })
       .catch((err) => {
-        console.error('Error loading CSV:', err)
+        console.error('Error loading Cashflow data:', err)
         setIsLoading(false)
         setLoadError(err.message || 'Failed to load data')
       })
   }
 
   useEffect(() => {
-    loadCSVData()
+    loadData()
   }, [])
 
   if (loadError) {
@@ -46,14 +57,16 @@ export default function CashflowDashboard() {
       <div className="p-8 flex items-center justify-center min-h-[40vh]">
         <div className="text-center max-w-md">
           <p className="text-red-400 mb-4">{loadError}</p>
-          <p className="text-slate-500 text-sm mb-4">Ensure <code className="bg-slate-800 px-1 rounded">Cashflow/db.csv</code> exists for dev, or copy it to <code className="bg-slate-800 px-1 rounded">public/db.csv</code> for build.</p>
-          <button type="button" onClick={loadCSVData} disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-500 disabled:opacity-50">Retry</button>
+          <p className="text-slate-500 text-sm mb-4">
+            If using Supabase, check <code className="bg-slate-800 px-1 rounded">.env</code> (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY) and the <code className="bg-slate-800 px-1 rounded">cashflow_invoices</code> table. Otherwise ensure <code className="bg-slate-800 px-1 rounded">Cashflow/db.csv</code> exists.
+          </p>
+          <button type="button" onClick={loadData} disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-500 disabled:opacity-50">Retry</button>
         </div>
       </div>
     )
   }
 
-  if (!data) {
+  if (invoices === null) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[40vh]">
         <div className="text-slate-500">Loading Cashflow data…</div>
@@ -68,7 +81,7 @@ export default function CashflowDashboard() {
           <div className="flex items-center justify-between">
             <MonthFilter selectedMonth={selectedMonth} selectedYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} />
             <button
-              onClick={loadCSVData}
+              onClick={loadData}
               disabled={isLoading}
               className="px-4 py-2 text-sm font-medium text-emerald-400 bg-slate-800 border border-slate-600 rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950 transition-colors disabled:opacity-50"
             >
@@ -77,10 +90,10 @@ export default function CashflowDashboard() {
           </div>
         </div>
         <div className="space-y-4">
-          <SummaryCards csvData={data} currentMonth={selectedMonth} currentYear={selectedYear} />
-          <PaymentTimeline csvData={data} currentMonth={selectedMonth} currentYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} />
-          <CashFlowSimulator csvData={data} />
-          <InvoiceTable csvData={data} currentMonth={selectedMonth} currentYear={selectedYear} />
+          <SummaryCards invoices={invoices} currentMonth={selectedMonth} currentYear={selectedYear} />
+          <PaymentTimeline invoices={invoices} currentMonth={selectedMonth} currentYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} />
+          <CashFlowSimulator invoices={invoices} />
+          <InvoiceTable invoices={invoices} currentMonth={selectedMonth} currentYear={selectedYear} />
         </div>
       </div>
     </div>

@@ -1,0 +1,385 @@
+company,metric_key,period_label,value
+CONSOLIDATED,totalIncome,January-26,693153
+CONSOLIDATED,totalIncome,February-26,798025
+CONSOLIDATED,totalIncome,March-26,718322
+CONSOLIDATED,totalIncome,April-26,716047
+CONSOLIDATED,totalIncome,May-26,716067
+CONSOLIDATED,totalIncome,June-26,906449
+CONSOLIDATED,totalIncome,July-26,712273
+CONSOLIDATED,totalIncome,August-26,712508
+CONSOLIDATED,totalIncome,September-26,712748
+CONSOLIDATED,totalIncome,October-26,712993
+CONSOLIDATED,totalIncome,November-26,713243
+CONSOLIDATED,totalIncome,December-26,713498
+CONSOLIDATED,cogs,January-26,-497474
+CONSOLIDATED,cogs,February-26,-578699
+CONSOLIDATED,cogs,March-26,-535675
+CONSOLIDATED,cogs,April-26,-534752
+CONSOLIDATED,cogs,May-26,-534782
+CONSOLIDATED,cogs,June-26,-677527
+CONSOLIDATED,cogs,July-26,-533027
+CONSOLIDATED,cogs,August-26,-533161
+CONSOLIDATED,cogs,September-26,-533298
+CONSOLIDATED,cogs,October-26,-533438
+CONSOLIDATED,cogs,November-26,-533580
+CONSOLIDATED,cogs,December-26,-533725
+CONSOLIDATED,grossProfit,January-26,195679
+CONSOLIDATED,grossProfit,February-26,219327
+CONSOLIDATED,grossProfit,March-26,182646
+CONSOLIDATED,grossProfit,April-26,181295
+CONSOLIDATED,grossProfit,May-26,181284
+CONSOLIDATED,grossProfit,June-26,228922
+CONSOLIDATED,grossProfit,July-26,179246
+CONSOLIDATED,grossProfit,August-26,179347
+CONSOLIDATED,grossProfit,September-26,179450
+CONSOLIDATED,grossProfit,October-26,179555
+CONSOLIDATED,grossProfit,November-26,179663
+CONSOLIDATED,grossProfit,December-26,179772
+CONSOLIDATED,totalExpenses,January-26,-195412
+CONSOLIDATED,totalExpenses,February-26,-203921
+CONSOLIDATED,totalExpenses,March-26,-178605
+CONSOLIDATED,totalExpenses,April-26,-174797
+CONSOLIDATED,totalExpenses,May-26,-171297
+CONSOLIDATED,totalExpenses,June-26,-171297
+CONSOLIDATED,totalExpenses,July-26,-171297
+CONSOLIDATED,totalExpenses,August-26,-171297
+CONSOLIDATED,totalExpenses,September-26,-171297
+CONSOLIDATED,totalExpenses,October-26,-171297
+CONSOLIDATED,totalExpenses,November-26,-171297
+CONSOLIDATED,totalExpenses,December-26,-171297
+CONSOLIDATED,operatingIncome,January-26,267
+CONSOLIDATED,operatingIncome,February-26,15406
+CONSOLIDATED,operatingIncome,March-26,4041
+CONSOLIDATED,operatingIncome,April-26,6498
+CONSOLIDATED,operatingIncome,May-26,9987
+CONSOLIDATED,operatingIncome,June-26,57625
+CONSOLIDATED,operatingIncome,July-26,7949
+CONSOLIDATED,operatingIncome,August-26,8050
+CONSOLIDATED,operatingIncome,September-26,8153
+CONSOLIDATED,operatingIncome,October-26,8259
+CONSOLIDATED,operatingIncome,November-26,8366
+CONSOLIDATED,operatingIncome,December-26,8475
+Ryz Labs HC LLC,totalIncome,January-26,665520
+Ryz Labs HC LLC,totalIncome,February-26,704076
+Ryz Labs HC LLC,totalIncome,March-26,704153
+Ryz Labs HC LLC,totalIncome,April-26,701661
+Ryz Labs HC LLC,totalIncome,May-26,701459
+Ryz Labs HC LLC,totalIncome,June-26,701661
+Ryz Labs HC LLC,totalIncome,July-26,697208
+Ryz Labs HC LLC,totalIncome,August-26,697208
+Ryz Labs HC LLC,totalIncome,September-26,697208
+Ryz Labs HC LLC,totalIncome,October-26,697208
+Ryz Labs HC LLC,totalIncome,November-26,697208
+Ryz Labs HC LLC,totalIncome,December-26,697208
+Ryz Labs HC LLC,cogs,January-26,-480528
+Ryz Labs HC LLC,cogs,February-26,-513496
+Ryz Labs HC LLC,cogs,March-26,-521715
+Ryz Labs HC LLC,cogs,April-26,-520668
+Ryz Labs HC LLC,cogs,May-26,-520572
+Ryz Labs HC LLC,cogs,June-26,-520668
+Ryz Labs HC LLC,cogs,July-26,-518556
+Ryz Labs HC LLC,cogs,August-26,-518556
+Ryz Labs HC LLC,cogs,September-26,-518556
+Ryz Labs HC LLC,cogs,October-26,-518556
+Ryz Labs HC LLC,cogs,November-26,-518556
+Ryz Labs HC LLC,cogs,December-26,-518556
+Ryz Labs HC LLC,grossProfit,January-26,184992
+Ryz Labs HC LLC,grossProfit,February-26,190579
+Ryz Labs HC LLC,grossProfit,March-26,182438
+Ryz Labs HC LLC,grossProfit,April-26,180993
+Ryz Labs HC LLC,grossProfit,May-26,180887
+Ryz Labs HC LLC,grossProfit,June-26,180993
+Ryz Labs HC LLC,grossProfit,July-26,178652
+Ryz Labs HC LLC,grossProfit,August-26,178652
+Ryz Labs HC LLC,grossProfit,September-26,178652
+Ryz Labs HC LLC,grossProfit,October-26,178652
+Ryz Labs HC LLC,grossProfit,November-26,178652
+Ryz Labs HC LLC,grossProfit,December-26,178652
+Ryz Labs HC LLC,totalExpenses,January-26,-105118
+Ryz Labs HC LLC,totalExpenses,February-26,-101260
+Ryz Labs HC LLC,totalExpenses,March-26,-87184
+Ryz Labs HC LLC,totalExpenses,April-26,-83176
+Ryz Labs HC LLC,totalExpenses,May-26,-79676
+Ryz Labs HC LLC,totalExpenses,June-26,-79676
+Ryz Labs HC LLC,totalExpenses,July-26,-79676
+Ryz Labs HC LLC,totalExpenses,August-26,-79676
+Ryz Labs HC LLC,totalExpenses,September-26,-79676
+Ryz Labs HC LLC,totalExpenses,October-26,-79676
+Ryz Labs HC LLC,totalExpenses,November-26,-79676
+Ryz Labs HC LLC,totalExpenses,December-26,-79676
+Ryz Labs HC LLC,operatingIncome,January-26,79874
+Ryz Labs HC LLC,operatingIncome,February-26,89319
+Ryz Labs HC LLC,operatingIncome,March-26,95253
+Ryz Labs HC LLC,operatingIncome,April-26,97817
+Ryz Labs HC LLC,operatingIncome,May-26,101210
+Ryz Labs HC LLC,operatingIncome,June-26,101317
+Ryz Labs HC LLC,operatingIncome,July-26,98976
+Ryz Labs HC LLC,operatingIncome,August-26,98976
+Ryz Labs HC LLC,operatingIncome,September-26,98976
+Ryz Labs HC LLC,operatingIncome,October-26,98976
+Ryz Labs HC LLC,operatingIncome,November-26,98976
+Ryz Labs HC LLC,operatingIncome,December-26,98976
+Offsiteio Inc,totalIncome,January-26,5982
+Offsiteio Inc,totalIncome,February-26,79994
+Offsiteio Inc,totalIncome,March-26,0
+Offsiteio Inc,totalIncome,April-26,0
+Offsiteio Inc,totalIncome,May-26,0
+Offsiteio Inc,totalIncome,June-26,189954
+Offsiteio Inc,totalIncome,July-26,0
+Offsiteio Inc,totalIncome,August-26,0
+Offsiteio Inc,totalIncome,September-26,0
+Offsiteio Inc,totalIncome,October-26,0
+Offsiteio Inc,totalIncome,November-26,0
+Offsiteio Inc,totalIncome,December-26,0
+Offsiteio Inc,cogs,January-26,0
+Offsiteio Inc,cogs,February-26,-52289
+Offsiteio Inc,cogs,March-26,0
+Offsiteio Inc,cogs,April-26,0
+Offsiteio Inc,cogs,May-26,0
+Offsiteio Inc,cogs,June-26,-142520
+Offsiteio Inc,cogs,July-26,0
+Offsiteio Inc,cogs,August-26,0
+Offsiteio Inc,cogs,September-26,0
+Offsiteio Inc,cogs,October-26,0
+Offsiteio Inc,cogs,November-26,0
+Offsiteio Inc,cogs,December-26,0
+Offsiteio Inc,grossProfit,January-26,5982
+Offsiteio Inc,grossProfit,February-26,27705
+Offsiteio Inc,grossProfit,March-26,0
+Offsiteio Inc,grossProfit,April-26,0
+Offsiteio Inc,grossProfit,May-26,0
+Offsiteio Inc,grossProfit,June-26,47434
+Offsiteio Inc,grossProfit,July-26,0
+Offsiteio Inc,grossProfit,August-26,0
+Offsiteio Inc,grossProfit,September-26,0
+Offsiteio Inc,grossProfit,October-26,0
+Offsiteio Inc,grossProfit,November-26,0
+Offsiteio Inc,grossProfit,December-26,0
+Offsiteio Inc,totalExpenses,January-26,-4527
+Offsiteio Inc,totalExpenses,February-26,-8498
+Offsiteio Inc,totalExpenses,March-26,-4850
+Offsiteio Inc,totalExpenses,April-26,-4950
+Offsiteio Inc,totalExpenses,May-26,-4950
+Offsiteio Inc,totalExpenses,June-26,-4950
+Offsiteio Inc,totalExpenses,July-26,-4950
+Offsiteio Inc,totalExpenses,August-26,-4950
+Offsiteio Inc,totalExpenses,September-26,-4950
+Offsiteio Inc,totalExpenses,October-26,-4950
+Offsiteio Inc,totalExpenses,November-26,-4950
+Offsiteio Inc,totalExpenses,December-26,-4950
+Offsiteio Inc,operatingIncome,January-26,1455
+Offsiteio Inc,operatingIncome,February-26,19208
+Offsiteio Inc,operatingIncome,March-26,-4850
+Offsiteio Inc,operatingIncome,April-26,-4950
+Offsiteio Inc,operatingIncome,May-26,-4950
+Offsiteio Inc,operatingIncome,June-26,42484
+Offsiteio Inc,operatingIncome,July-26,-4950
+Offsiteio Inc,operatingIncome,August-26,-4950
+Offsiteio Inc,operatingIncome,September-26,-4950
+Offsiteio Inc,operatingIncome,October-26,-4950
+Offsiteio Inc,operatingIncome,November-26,-4950
+Offsiteio Inc,operatingIncome,December-26,-4950
+Ryz Labs Studio LLC,totalIncome,January-26,9500
+Ryz Labs Studio LLC,totalIncome,February-26,1500
+Ryz Labs Studio LLC,totalIncome,March-26,1500
+Ryz Labs Studio LLC,totalIncome,April-26,1500
+Ryz Labs Studio LLC,totalIncome,May-26,1500
+Ryz Labs Studio LLC,totalIncome,June-26,1500
+Ryz Labs Studio LLC,totalIncome,July-26,1500
+Ryz Labs Studio LLC,totalIncome,August-26,1500
+Ryz Labs Studio LLC,totalIncome,September-26,1500
+Ryz Labs Studio LLC,totalIncome,October-26,1500
+Ryz Labs Studio LLC,totalIncome,November-26,1500
+Ryz Labs Studio LLC,totalIncome,December-26,1500
+Ryz Labs Studio LLC,cogs,January-26,-2845
+Ryz Labs Studio LLC,cogs,February-26,-2596
+Ryz Labs Studio LLC,cogs,March-26,-3521
+Ryz Labs Studio LLC,cogs,April-26,-3521
+Ryz Labs Studio LLC,cogs,May-26,-3521
+Ryz Labs Studio LLC,cogs,June-26,-3521
+Ryz Labs Studio LLC,cogs,July-26,-3521
+Ryz Labs Studio LLC,cogs,August-26,-3521
+Ryz Labs Studio LLC,cogs,September-26,-3521
+Ryz Labs Studio LLC,cogs,October-26,-3521
+Ryz Labs Studio LLC,cogs,November-26,-3521
+Ryz Labs Studio LLC,cogs,December-26,-3521
+Ryz Labs Studio LLC,grossProfit,January-26,6655
+Ryz Labs Studio LLC,grossProfit,February-26,-1096
+Ryz Labs Studio LLC,grossProfit,March-26,-2021
+Ryz Labs Studio LLC,grossProfit,April-26,-2021
+Ryz Labs Studio LLC,grossProfit,May-26,-2021
+Ryz Labs Studio LLC,grossProfit,June-26,-2021
+Ryz Labs Studio LLC,grossProfit,July-26,-2021
+Ryz Labs Studio LLC,grossProfit,August-26,-2021
+Ryz Labs Studio LLC,grossProfit,September-26,-2021
+Ryz Labs Studio LLC,grossProfit,October-26,-2021
+Ryz Labs Studio LLC,grossProfit,November-26,-2021
+Ryz Labs Studio LLC,grossProfit,December-26,-2021
+Ryz Labs Studio LLC,totalExpenses,January-26,-1214
+Ryz Labs Studio LLC,totalExpenses,February-26,-1216
+Ryz Labs Studio LLC,totalExpenses,March-26,-1216
+Ryz Labs Studio LLC,totalExpenses,April-26,-1216
+Ryz Labs Studio LLC,totalExpenses,May-26,-1216
+Ryz Labs Studio LLC,totalExpenses,June-26,-1216
+Ryz Labs Studio LLC,totalExpenses,July-26,-1216
+Ryz Labs Studio LLC,totalExpenses,August-26,-1216
+Ryz Labs Studio LLC,totalExpenses,September-26,-1216
+Ryz Labs Studio LLC,totalExpenses,October-26,-1216
+Ryz Labs Studio LLC,totalExpenses,November-26,-1216
+Ryz Labs Studio LLC,totalExpenses,December-26,-1216
+Ryz Labs Studio LLC,operatingIncome,January-26,5441
+Ryz Labs Studio LLC,operatingIncome,February-26,-2312
+Ryz Labs Studio LLC,operatingIncome,March-26,-3237
+Ryz Labs Studio LLC,operatingIncome,April-26,-3237
+Ryz Labs Studio LLC,operatingIncome,May-26,-3237
+Ryz Labs Studio LLC,operatingIncome,June-26,-3237
+Ryz Labs Studio LLC,operatingIncome,July-26,-3237
+Ryz Labs Studio LLC,operatingIncome,August-26,-3237
+Ryz Labs Studio LLC,operatingIncome,September-26,-3237
+Ryz Labs Studio LLC,operatingIncome,October-26,-3237
+Ryz Labs Studio LLC,operatingIncome,November-26,-3237
+Ryz Labs Studio LLC,operatingIncome,December-26,-3237
+Ntrvsta,totalIncome,January-26,1800
+Ntrvsta,totalIncome,February-26,1800
+Ntrvsta,totalIncome,March-26,1800
+Ntrvsta,totalIncome,April-26,1800
+Ntrvsta,totalIncome,May-26,1800
+Ntrvsta,totalIncome,June-26,1800
+Ntrvsta,totalIncome,July-26,1800
+Ntrvsta,totalIncome,August-26,1800
+Ntrvsta,totalIncome,September-26,1800
+Ntrvsta,totalIncome,October-26,1800
+Ntrvsta,totalIncome,November-26,1800
+Ntrvsta,totalIncome,December-26,1800
+Ntrvsta,cogs,January-26,-6160
+Ntrvsta,cogs,February-26,-3581
+Ntrvsta,cogs,March-26,-3581
+Ntrvsta,cogs,April-26,-3581
+Ntrvsta,cogs,May-26,-3581
+Ntrvsta,cogs,June-26,-3581
+Ntrvsta,cogs,July-26,-3581
+Ntrvsta,cogs,August-26,-3581
+Ntrvsta,cogs,September-26,-3581
+Ntrvsta,cogs,October-26,-3581
+Ntrvsta,cogs,November-26,-3581
+Ntrvsta,cogs,December-26,-3581
+Ntrvsta,grossProfit,January-26,-4360
+Ntrvsta,grossProfit,February-26,-1781
+Ntrvsta,grossProfit,March-26,-1781
+Ntrvsta,grossProfit,April-26,-1781
+Ntrvsta,grossProfit,May-26,-1781
+Ntrvsta,grossProfit,June-26,-1781
+Ntrvsta,grossProfit,July-26,-1781
+Ntrvsta,grossProfit,August-26,-1781
+Ntrvsta,grossProfit,September-26,-1781
+Ntrvsta,grossProfit,October-26,-1781
+Ntrvsta,grossProfit,November-26,-1781
+Ntrvsta,grossProfit,December-26,-1781
+Ntrvsta,totalExpenses,January-26,-30963
+Ntrvsta,totalExpenses,February-26,-31758
+Ntrvsta,totalExpenses,March-26,-27165
+Ntrvsta,totalExpenses,April-26,-27165
+Ntrvsta,totalExpenses,May-26,-27165
+Ntrvsta,totalExpenses,June-26,-27165
+Ntrvsta,totalExpenses,July-26,-27165
+Ntrvsta,totalExpenses,August-26,-27165
+Ntrvsta,totalExpenses,September-26,-27165
+Ntrvsta,totalExpenses,October-26,-27165
+Ntrvsta,totalExpenses,November-26,-27165
+Ntrvsta,totalExpenses,December-26,-27165
+Ntrvsta,operatingIncome,January-26,-35323
+Ntrvsta,operatingIncome,February-26,-33539
+Ntrvsta,operatingIncome,March-26,-28946
+Ntrvsta,operatingIncome,April-26,-28946
+Ntrvsta,operatingIncome,May-26,-28946
+Ntrvsta,operatingIncome,June-26,-28946
+Ntrvsta,operatingIncome,July-26,-28946
+Ntrvsta,operatingIncome,August-26,-28946
+Ntrvsta,operatingIncome,September-26,-28946
+Ntrvsta,operatingIncome,October-26,-28946
+Ntrvsta,operatingIncome,November-26,-28946
+Ntrvsta,operatingIncome,December-26,-28946
+Hip Train Inc,totalIncome,January-26,10351
+Hip Train Inc,totalIncome,February-26,10656
+Hip Train Inc,totalIncome,March-26,10869
+Hip Train Inc,totalIncome,April-26,11086
+Hip Train Inc,totalIncome,May-26,11308
+Hip Train Inc,totalIncome,June-26,11534
+Hip Train Inc,totalIncome,July-26,11765
+Hip Train Inc,totalIncome,August-26,12000
+Hip Train Inc,totalIncome,September-26,12240
+Hip Train Inc,totalIncome,October-26,12485
+Hip Train Inc,totalIncome,November-26,12735
+Hip Train Inc,totalIncome,December-26,12989
+Hip Train Inc,cogs,January-26,-7940
+Hip Train Inc,cogs,February-26,-6737
+Hip Train Inc,cogs,March-26,-6859
+Hip Train Inc,cogs,April-26,-6983
+Hip Train Inc,cogs,May-26,-7109
+Hip Train Inc,cogs,June-26,-7238
+Hip Train Inc,cogs,July-26,-7370
+Hip Train Inc,cogs,August-26,-7504
+Hip Train Inc,cogs,September-26,-7641
+Hip Train Inc,cogs,October-26,-7780
+Hip Train Inc,cogs,November-26,-7923
+Hip Train Inc,cogs,December-26,-8068
+Hip Train Inc,grossProfit,January-26,2411
+Hip Train Inc,grossProfit,February-26,3919
+Hip Train Inc,grossProfit,March-26,4010
+Hip Train Inc,grossProfit,April-26,4104
+Hip Train Inc,grossProfit,May-26,4199
+Hip Train Inc,grossProfit,June-26,4296
+Hip Train Inc,grossProfit,July-26,4395
+Hip Train Inc,grossProfit,August-26,4496
+Hip Train Inc,grossProfit,September-26,4600
+Hip Train Inc,grossProfit,October-26,4705
+Hip Train Inc,grossProfit,November-26,4812
+Hip Train Inc,grossProfit,December-26,4921
+Hip Train Inc,totalExpenses,January-26,-2850
+Hip Train Inc,totalExpenses,February-26,-6039
+Hip Train Inc,totalExpenses,March-26,-3039
+Hip Train Inc,totalExpenses,April-26,-3139
+Hip Train Inc,totalExpenses,May-26,-3139
+Hip Train Inc,totalExpenses,June-26,-3139
+Hip Train Inc,totalExpenses,July-26,-3139
+Hip Train Inc,totalExpenses,August-26,-3139
+Hip Train Inc,totalExpenses,September-26,-3139
+Hip Train Inc,totalExpenses,October-26,-3139
+Hip Train Inc,totalExpenses,November-26,-3139
+Hip Train Inc,totalExpenses,December-26,-3139
+Hip Train Inc,operatingIncome,January-26,-438
+Hip Train Inc,operatingIncome,February-26,-2120
+Hip Train Inc,operatingIncome,March-26,971
+Hip Train Inc,operatingIncome,April-26,965
+Hip Train Inc,operatingIncome,May-26,1060
+Hip Train Inc,operatingIncome,June-26,1157
+Hip Train Inc,operatingIncome,July-26,1256
+Hip Train Inc,operatingIncome,August-26,1357
+Hip Train Inc,operatingIncome,September-26,1460
+Hip Train Inc,operatingIncome,October-26,1566
+Hip Train Inc,operatingIncome,November-26,1673
+Hip Train Inc,operatingIncome,December-26,1782
+Ryz Labs LLC,totalExpenses,January-26,-50740
+Ryz Labs LLC,totalExpenses,February-26,-55150
+Ryz Labs LLC,totalExpenses,March-26,-55150
+Ryz Labs LLC,totalExpenses,April-26,-55150
+Ryz Labs LLC,totalExpenses,May-26,-55150
+Ryz Labs LLC,totalExpenses,June-26,-55150
+Ryz Labs LLC,totalExpenses,July-26,-55150
+Ryz Labs LLC,totalExpenses,August-26,-55150
+Ryz Labs LLC,totalExpenses,September-26,-55150
+Ryz Labs LLC,totalExpenses,October-26,-55150
+Ryz Labs LLC,totalExpenses,November-26,-55150
+Ryz Labs LLC,totalExpenses,December-26,-55150
+Ryz Labs LLC,operatingIncome,January-26,-50740
+Ryz Labs LLC,operatingIncome,February-26,-55150
+Ryz Labs LLC,operatingIncome,March-26,-55150
+Ryz Labs LLC,operatingIncome,April-26,-55150
+Ryz Labs LLC,operatingIncome,May-26,-55150
+Ryz Labs LLC,operatingIncome,June-26,-55150
+Ryz Labs LLC,operatingIncome,July-26,-55150
+Ryz Labs LLC,operatingIncome,August-26,-55150
+Ryz Labs LLC,operatingIncome,September-26,-55150
+Ryz Labs LLC,operatingIncome,October-26,-55150
+Ryz Labs LLC,operatingIncome,November-26,-55150
+Ryz Labs LLC,operatingIncome,December-26,-55150

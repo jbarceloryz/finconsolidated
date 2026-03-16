@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { processCSVData, normalizeStatus } from '../utils/processCSV';
 
-const SummaryCards = ({ csvData, currentMonth = null, currentYear = null }) => {
+const SummaryCards = ({ invoices: invoicesProp, csvData, currentMonth = null, currentYear = null }) => {
+  const invoices = invoicesProp ?? (csvData ? processCSVData(csvData) : [])
   const summary = useMemo(() => {
-    if (!csvData) return { paid: 0, overdue: 0, upcoming: 0, total: 0 };
-    const invoices = processCSVData(csvData);
+    if (!invoices.length) return { paid: 0, overdue: 0, upcoming: 0, total: 0 };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const selectedMonth = currentMonth !== null && currentMonth !== undefined ? currentMonth : today.getMonth();
@@ -27,7 +27,7 @@ const SummaryCards = ({ csvData, currentMonth = null, currentYear = null }) => {
       upcoming += invoice.amount;
     });
     return { paid, overdue, upcoming, total: paid + overdue + upcoming };
-  }, [csvData, currentMonth, currentYear]);
+  }, [invoices, currentMonth, currentYear]);
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);

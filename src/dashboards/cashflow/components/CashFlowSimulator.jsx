@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { processCSVData, normalizeStatus } from '../utils/processCSV';
 
-const CashFlowSimulator = ({ csvData }) => {
+const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
   const [currentBalance, setCurrentBalance] = useState(0);
   const [balanceInputValue, setBalanceInputValue] = useState('');
   const [viewMode, setViewMode] = useState('weekly');
@@ -10,9 +10,9 @@ const CashFlowSimulator = ({ csvData }) => {
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [newPayment, setNewPayment] = useState({ amount: '', date: '', description: '' });
 
+  const invoices = invoicesProp ?? (csvData ? processCSVData(csvData) : [])
   const projections = useMemo(() => {
-    if (!csvData) return [];
-    const invoices = processCSVData(csvData);
+    if (!invoices.length) return [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const cashFlowEvents = [];
@@ -106,7 +106,7 @@ const CashFlowSimulator = ({ csvData }) => {
       runningBalance = runningBalance + projection.net;
       return { ...projection, projectedBalance: Number(runningBalance.toFixed(2)) };
     });
-  }, [csvData, currentBalance, viewMode, outgoingPayments]);
+  }, [invoices, currentBalance, viewMode, outgoingPayments]);
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
