@@ -54,30 +54,10 @@ function serveNetIncomeCsv() {
   }
 }
 
-/** Serve GP Analysis at /gp-analysis/ in dev (index.html, data.js, etc.). */
-function serveGPAnalysis() {
-  return {
-    name: 'serve-gp-analysis',
-    configureServer(server) {
-      const gpDir = path.join(__dirname, 'GP Analysis')
-      server.middlewares.use('/gp-analysis', (req, res, next) => {
-        const urlPath = req.url?.split('?')[0] || '/'
-        const file = urlPath === '/' ? 'index.html' : urlPath.slice(1)
-        const fullPath = path.join(gpDir, file)
-        if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-          const ext = path.extname(file)
-          const types = { '.html': 'text/html', '.js': 'application/javascript', '.json': 'application/json' }
-          res.setHeader('Content-Type', types[ext] || 'application/octet-stream')
-          res.end(fs.readFileSync(fullPath, 'utf-8'))
-        } else {
-          next()
-        }
-      })
-    },
-  }
-}
+// GP Analysis is served from public/gp-analysis/ (symlink → GP Analysis/)
+// Vite's static asset server handles it natively — no custom middleware needed.
 
 export default defineConfig({
-  plugins: [serveCashflowCsv(), serveNetIncomeCsv(), serveGPAnalysis(), react()],
+  plugins: [serveCashflowCsv(), serveNetIncomeCsv(), react()],
   base: '/',
 })
