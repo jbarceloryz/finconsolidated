@@ -30,7 +30,8 @@ export async function fetchCashflowFromSupabase() {
       const amount = Number(row.amount) || 0
       const status = normalizeStatus((row.status || '').trim()) || (row.status && row.status.toUpperCase())
       const statusCategory = getStatusCategory(status)
-      const dueDate = row.due_date ? new Date(row.due_date) : null
+      // Parse as local midnight — new Date('YYYY-MM-DD') is UTC and shifts the date back one day in US timezones
+      const dueDate = row.due_date ? new Date(row.due_date + 'T00:00:00') : null
       if (!dueDate || isNaN(dueDate.getTime())) return null
       return {
         client: (row.client || '').trim(),
