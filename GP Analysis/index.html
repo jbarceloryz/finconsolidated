@@ -298,7 +298,44 @@
   </style>
 </head>
 <body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="data.js"></script>
+  <script>
+    const _SUPABASE_URL  = 'https://fvqmiemlmiqwgezkdurp.supabase.co';
+    const _SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2cW1pZW1sbWlxd2dlemtkdXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2ODU3NzgsImV4cCI6MjA4OTI2MTc3OH0.Pw9ThzCp3E3JBb8bZ1nk5ZyvkonKvVPJUQ_s4fWFIu4';
+    const _sbClient      = supabase.createClient(_SUPABASE_URL, _SUPABASE_KEY);
+    const _MO_ABBR       = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    function _isoToDisplay(iso) {
+      if (!iso) return 'N/A';
+      const [y, m, d] = iso.split('-');
+      return `${_MO_ABBR[parseInt(m,10)-1]} ${parseInt(d,10)}, ${y}`;
+    }
+
+    async function loadTalentPoolFromSupabase() {
+      const { data, error } = await _sbClient
+        .from('talent_pool')
+        .select('*')
+        .order('month', { ascending: true });
+      if (error || !data || !data.length) return null;
+
+      const cols = ['Candidate Name','Role','Company','Rate','Actual Cost','Net Margin',
+                    'Rate Type','Start Date','Hire Date','End Date','Status','Month'];
+      const lines = [cols.join(',')];
+      for (const r of data) {
+        const vals = [
+          r.candidate_name, r.role, r.company,
+          r.rate, r.actual_cost, r.net_margin, r.rate_type,
+          _isoToDisplay(r.start_date),
+          _isoToDisplay(r.hire_date),
+          r.end_date ? _isoToDisplay(r.end_date) : 'N/A',
+          r.status, r.month
+        ].map(v => { const s = String(v ?? ''); return s.includes(',') ? `"${s}"` : s; });
+        lines.push(vals.join(','));
+      }
+      return lines.join('\n');
+    }
+  </script>
 
   <div id="authGate" class="auth-gate">
     <div class="auth-card">
@@ -801,15 +838,20 @@
       });
     }
 
-    function initDashboard() {
+    async function initDashboard() {
       showDashboard();
       if (dashboardInitialized) return;
       dashboardInitialized = true;
-      const csvText = typeof window.TALENT_POOL_CSV === 'string' ? window.TALENT_POOL_CSV : '';
+
+      // Try Supabase first, fall back to data.js
+      let csvText = null;
+      try { csvText = await loadTalentPoolFromSupabase(); } catch (_) {}
+      if (!csvText) csvText = typeof window.TALENT_POOL_CSV === 'string' ? window.TALENT_POOL_CSV : '';
+
       if (csvText.trim()) {
         run(csvText);
       } else {
-        document.getElementById('status').innerHTML = 'No data. Change the CSV in <strong>config.json</strong> (csvPath) and run: <code>node update-data.js</code> or <code>python3 update_data.py</code>. Then reload this page.';
+        document.getElementById('status').innerHTML = 'No data available. Upload data to Supabase or update data.js.';
       }
       const exc = document.getElementById('excludeInternal');
       if (exc) exc.addEventListener('change', runWithLastData);
