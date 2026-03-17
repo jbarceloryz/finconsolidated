@@ -246,6 +246,20 @@ function NetIncomeContent({
     })
   }, [metricsByCompany, months, TABLE_COLUMNS, TABLE_ROWS, getValueAtMonth, pctChange])
 
+  const tablaAbril = useMemo(() => {
+    const cols = TABLE_COLUMNS.filter((col) => metricsByCompany[col.key])
+    return TABLE_ROWS.map((row) => {
+      const cells = { metric: row.label }
+      cols.forEach((col) => {
+        cells[col.key] = getValueAtMonth(metricsByCompany, col.key, row.key, months, 'April-26')
+      })
+      const valApr = getValueAtMonth(metricsByCompany, 'CONSOLIDATED', row.key, months, 'April-26')
+      const valMar = getValueAtMonth(metricsByCompany, 'CONSOLIDATED', row.key, months, 'March-26')
+      cells.pctChange = pctChange(valApr, valMar)
+      return cells
+    })
+  }, [metricsByCompany, months, TABLE_COLUMNS, TABLE_ROWS, getValueAtMonth, pctChange])
+
   const momAnalysisMarVsFeb = useMemo(() => {
     const get = (company, metric) => ({
       feb: getValueAtMonth(metricsByCompany, company, metric, months, 'February-26'),
@@ -440,11 +454,17 @@ function NetIncomeContent({
         )}
 
         {[
-          { title: 'February 2026 — Current Month', data: tablaFebrero, pctLabel: 'vs Jan %' },
+          { title: 'February 2026 — Previous Month', data: tablaFebrero, pctLabel: 'vs Jan %' },
           { title: 'March 2026 — Current Month', data: tablaMarzo, pctLabel: 'vs Feb %' },
+          { title: 'April 2026 — Next Month Projection', data: tablaAbril, pctLabel: 'vs Mar %', isProjection: true },
         ].map((block) => (
-          <div key={block.title} className="mt-8 rounded-xl border border-slate-600 bg-slate-800/40 p-5 shadow-lg">
-            <h2 className="font-bold text-lg text-slate-100">Financial Dashboard</h2>
+          <div key={block.title} className={`mt-8 rounded-xl border p-5 shadow-lg ${block.isProjection ? 'border-amber-500/40 bg-amber-950/20' : 'border-slate-600 bg-slate-800/40'}`}>
+            <div className="flex items-center gap-3">
+              <h2 className="font-bold text-lg text-slate-100">Financial Dashboard</h2>
+              {block.isProjection && (
+                <span className="rounded-full bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 text-xs font-semibold text-amber-300 tracking-wide">PROJECTION</span>
+              )}
+            </div>
             <p className="mt-1 text-sm font-semibold text-slate-300">{block.title}</p>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[640px] border-collapse text-sm">
