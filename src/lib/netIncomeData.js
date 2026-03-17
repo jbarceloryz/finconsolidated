@@ -55,10 +55,11 @@ export async function fetchNetIncomeFromSupabase() {
   metrics.forEach((row) => {
     const { company, metric_key, period_label, value } = row
     const num = Number(value) || 0
-    if (!METRIC_KEYS.includes(metric_key)) return
+    const normalised = metric_key === 'totalCOGS' ? 'cogs' : metric_key
+    if (!METRIC_KEYS.includes(normalised)) return
     const idx = months.indexOf(period_label)
     if (idx === -1 || !metricsByCompany[company]) return
-    metricsByCompany[company][metric_key][idx] = num
+    metricsByCompany[company][normalised][idx] = num
     if (metric_key === 'operatingIncome') byCompany[company][idx] = num
   })
 
