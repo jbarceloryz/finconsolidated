@@ -1,5 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { processCSVData, normalizeStatus } from '../utils/processCSV';
+import { supabase } from '../../../lib/supabase';
+
+const SAVE_DEBOUNCE_MS = 1500;
 
 const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
   const [currentBalance, setCurrentBalance] = useState(0);
@@ -9,6 +12,60 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
   const [outgoingPayments, setOutgoingPayments] = useState([]);
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [newPayment, setNewPayment] = useState({ amount: '', date: '', description: '' });
+  const [saveStatus, setSaveStatus] = useState('idle'); // idle | saving | saved | error
+  const [loaded, setLoaded] = useState(false);
+  const saveTimer = useRef(null);
+
+  // ── Load settings from Supabase on mount ──
+  useEffect(() => {
+    if (!supabase) { setLoaded(true); return; }
+    supabase
+      .from('cashflow_settings')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) { console.error('Failed to load cashflow settings:', error); }
+        if (data) {
+          setCurrentBalance(Number(data.current_balance) || 0);
+          if (data.outgoing_payments && Array.isArray(data.outgoing_payments)) {
+            setOutgoingPayments(data.outgoing_payments);
+          }
+        }
+        setLoaded(true);
+      });
+  }, []);
+
+  // ── Save helper ──
+  const saveToSupabase = useCallback(async (balance, payments) => {
+    if (!supabase) return;
+    setSaveStatus('saving');
+    const { error } = await supabase
+      .from('cashflow_settings')
+      .upsert({
+        id: 1,
+        current_balance: balance,
+        outgoing_payments: payments,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+    if (error) {
+      console.error('Failed to save cashflow settings:', error);
+      setSaveStatus('error');
+    } else {
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus((s) => s === 'saved' ? 'idle' : s), 2000);
+    }
+  }, []);
+
+  // ── Debounced auto-save whenever balance or payments change ──
+  useEffect(() => {
+    if (!loaded) return; // Don't save on initial load
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveToSupabase(currentBalance, outgoingPayments);
+    }, SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(saveTimer.current);
+  }, [currentBalance, outgoingPayments, loaded, saveToSupabase]);
 
   const invoices = invoicesProp ?? (csvData ? processCSVData(csvData) : [])
   const projections = useMemo(() => {
@@ -122,9 +179,23 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const saveStatusLabel = saveStatus === 'saving' ? '⏳ Saving...'
+    : saveStatus === 'saved' ? '✓ Saved'
+    : saveStatus === 'error' ? '⚠ Save failed'
+    : null;
+
   return (
     <div className="bg-slate-900/60 border border-slate-800 rounded-lg shadow-sm p-6">
-      <h2 className="font-display text-xl font-semibold text-slate-200 mb-4">Cash Flow Simulator</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-xl font-semibold text-slate-200">Cash Flow Simulator</h2>
+        {saveStatusLabel && (
+          <span className={`text-xs font-medium ${
+            saveStatus === 'saving' ? 'text-slate-400'
+            : saveStatus === 'saved' ? 'text-emerald-400'
+            : 'text-rose-400'
+          }`}>{saveStatusLabel}</span>
+        )}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <label className="block text-sm font-medium text-slate-400 mb-2">Current Bank Balance</label>
