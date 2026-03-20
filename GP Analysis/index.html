@@ -19,6 +19,16 @@
       --loss: #f85149;
       --accent: #58a6ff;
     }
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --gain: #059669;
+      --loss: #e11d48;
+      --accent: #2563eb;
+    }
     * { box-sizing: border-box; }
     body {
       font-family: 'DM Sans', system-ui, sans-serif;
@@ -298,6 +308,20 @@
   </style>
 </head>
 <body>
+  <script>
+    // Apply saved theme immediately to avoid flash
+    (function() {
+      var t = localStorage.getItem('fc-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      // Listen for theme changes from parent React app
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'fc-theme') document.documentElement.setAttribute('data-theme', e.newValue || 'dark');
+      });
+      window.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'fc-theme') document.documentElement.setAttribute('data-theme', e.data.theme || 'dark');
+      });
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="data.js"></script>
   <script>
