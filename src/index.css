@@ -8,3 +8,66 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Light theme overrides ── */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Backgrounds */
+[data-theme="light"] .bg-slate-950 { background-color: #f8fafc !important; }
+[data-theme="light"] .bg-slate-900\/60,
+[data-theme="light"] .bg-slate-900\/50,
+[data-theme="light"] .bg-slate-900\/80 { background-color: #ffffff !important; }
+[data-theme="light"] .bg-slate-800 { background-color: #f1f5f9 !important; }
+[data-theme="light"] .bg-slate-800\/60,
+[data-theme="light"] .bg-slate-800\/50,
+[data-theme="light"] .bg-slate-800\/80 { background-color: #f1f5f9 !important; }
+[data-theme="light"] .hover\:bg-slate-800\/60:hover { background-color: #e2e8f0 !important; }
+[data-theme="light"] .hover\:bg-slate-700:hover { background-color: #e2e8f0 !important; }
+
+/* Emerald accent backgrounds */
+[data-theme="light"] .bg-emerald-500\/20 { background-color: #d1fae5 !important; }
+[data-theme="light"] .bg-emerald-500\/10 { background-color: #ecfdf5 !important; }
+[data-theme="light"] .bg-rose-500\/20 { background-color: #ffe4e6 !important; }
+[data-theme="light"] .bg-amber-500\/20 { background-color: #fef3c7 !important; }
+
+/* Text */
+[data-theme="light"] .text-white { color: #0f172a !important; }
+[data-theme="light"] .text-slate-100 { color: #1e293b !important; }
+[data-theme="light"] .text-slate-200 { color: #334155 !important; }
+[data-theme="light"] .text-slate-300 { color: #475569 !important; }
+[data-theme="light"] .text-slate-400 { color: #64748b !important; }
+[data-theme="light"] .text-slate-500 { color: #94a3b8 !important; }
+[data-theme="light"] .hover\:text-slate-200:hover { color: #1e293b !important; }
+[data-theme="light"] .placeholder\:text-slate-500::placeholder { color: #94a3b8 !important; }
+[data-theme="light"] .text-emerald-400 { color: #059669 !important; }
+[data-theme="light"] .text-rose-400 { color: #e11d48 !important; }
+[data-theme="light"] .text-amber-400 { color: #d97706 !important; }
+[data-theme="light"] .text-red-400 { color: #dc2626 !important; }
+
+/* Borders */
+[data-theme="light"] .border-slate-800 { border-color: #e2e8f0 !important; }
+[data-theme="light"] .border-slate-700 { border-color: #e2e8f0 !important; }
+[data-theme="light"] .border-slate-700\/80 { border-color: #f1f5f9 !important; }
+[data-theme="light"] .border-slate-600 { border-color: #cbd5e1 !important; }
+[data-theme="light"] .border-slate-500 { border-color: #cbd5e1 !important; }
+[data-theme="light"] .border-emerald-500\/30 { border-color: #a7f3d0 !important; }
+[data-theme="light"] .border-rose-500\/30 { border-color: #fecdd3 !important; }
+[data-theme="light"] .border-amber-500\/30 { border-color: #fde68a !important; }
+[data-theme="light"] .hover\:border-slate-700:hover { border-color: #cbd5e1 !important; }
+
+/* Shadows for light mode cards */
+[data-theme="light"] .shadow-sm { box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important; }
+[data-theme="light"] .shadow-2xl { box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.15) !important; }
+
+/* Ring offsets */
+[data-theme="light"] .focus\:ring-offset-slate-950:focus { --tw-ring-offset-color: #f8fafc !important; }
+[data-theme="light"] .focus\:ring-offset-slate-900:focus { --tw-ring-offset-color: #ffffff !important; }
+
+/* Skeleton pulse — slightly different color for light */
+[data-theme="light"] .animate-pulse { background-color: #e2e8f0 !important; }
+
+/* Recharts / SVG chart overrides */
+[data-theme="light"] .recharts-cartesian-grid line { stroke: #e2e8f0 !important; }
+[data-theme="light"] .recharts-text { fill: #64748b !important; }
