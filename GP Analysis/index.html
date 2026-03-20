@@ -353,7 +353,8 @@
     <h1>Talent Pool — Net Margin Gain/Loss</h1>
     <p class="subtitle" id="subtitle">Per month: <strong>Onboarded</strong> = margin gained (green), <strong>Offboarded</strong> = margin lost (red). CSV from <code>config.json</code> → csvPath.</p>
 
-    <p id="status">Cargando…</p>
+    <p id="status">Loading…</p>
+    <span id="lastUpdated" style="font-size: 0.75rem; color: #94a3b8;"></span>
 
     <div class="options-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; margin-bottom: 1rem;">
       <span id="excludeInternalWrap" style="display: none; align-items: center; gap: 0.5rem;">
@@ -845,13 +846,22 @@
 
       // Try Supabase first, fall back to data.js
       let csvText = null;
-      try { csvText = await loadTalentPoolFromSupabase(); } catch (_) {}
+      let supabaseError = null;
+      try { csvText = await loadTalentPoolFromSupabase(); } catch (err) { supabaseError = err; }
       if (!csvText) csvText = typeof window.TALENT_POOL_CSV === 'string' ? window.TALENT_POOL_CSV : '';
 
       if (csvText.trim()) {
         run(csvText);
+        var ts = document.getElementById('lastUpdated');
+        if (ts) ts.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
       } else {
-        document.getElementById('status').innerHTML = 'No data available. Upload data to Supabase or update data.js.';
+        var msg = supabaseError ? 'Failed to load from Supabase. ' : 'No data available. ';
+        document.getElementById('status').innerHTML = msg + '<button id="retryBtn" style="margin-left:8px;padding:4px 12px;background:#059669;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.85rem;">Retry</button>';
+        document.getElementById('retryBtn').addEventListener('click', function() {
+          dashboardInitialized = false;
+          document.getElementById('status').textContent = 'Retrying…';
+          initDashboard();
+        });
       }
       const exc = document.getElementById('excludeInternal');
       if (exc) exc.addEventListener('change', runWithLastData);
@@ -973,6 +983,8 @@
       if (!tableWrap || !center) return;
       const cells = tableWrap.querySelectorAll('.cell-with-breakdown');
       cells.forEach(cell => {
+        if (cell.dataset.bpAttached) return;
+        cell.dataset.bpAttached = '1';
         cell.addEventListener('mouseenter', function () {
           const popover = cell.querySelector('.breakdown-popover');
           if (popover && popover.innerHTML.trim()) {

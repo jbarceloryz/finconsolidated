@@ -36,9 +36,26 @@ function formatCurrency(value) {
   return `${sign}$${Math.abs(value).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
 }
 
-function sum2026(arr, months) {
-  if (!arr || !months) return 0
-  return months.reduce((acc, m, i) => (String(m).includes('-26') && arr[i] !== undefined ? acc + Number(arr[i]) : acc), 0)
+function sumAll(arr) {
+  if (!arr) return 0
+  return arr.reduce((acc, v) => (v !== undefined ? acc + Number(v) : acc), 0)
+}
+
+const MONTH_NAMES_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December']
+
+function deriveCurrentMonthIndex(months) {
+  const now = new Date()
+  const monthName = MONTH_NAMES_FULL[now.getMonth()]
+  const yearSuffix = String(now.getFullYear()).slice(-2)
+  const label = monthName + '-' + yearSuffix
+  const idx = months.indexOf(label)
+  return idx >= 0 ? idx : Math.min(months.length - 1, 2)
+}
+
+function formatMonthTitle(label) {
+  if (!label) return ''
+  const [name, yr] = label.split('-')
+  return `${name} 20${yr}`
 }
 
 function getMonthIndex(months, monthLabel) {
@@ -64,13 +81,16 @@ export default function NetIncomeDashboard() {
   const [parsed, setParsed] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [lastUpdated, setLastUpdated] = useState(null)
 
-  useEffect(() => {
+  const loadData = () => {
+    setIsLoading(true)
     setLoadError(null)
     fetchNetIncomeFromSupabase()
       .then((fromSupabase) => {
         if (fromSupabase !== null) {
           setParsed(fromSupabase)
+          setLastUpdated(new Date())
           setIsLoading(false)
           return
         }
@@ -82,6 +102,7 @@ export default function NetIncomeDashboard() {
           .then((text) => {
             try {
               setParsed(parseFinancialCsv(text))
+              setLastUpdated(new Date())
             } catch (e) {
               setLoadError('Failed to parse CSV')
             }
@@ -92,14 +113,17 @@ export default function NetIncomeDashboard() {
         setLoadError(err?.message || 'Failed to load data')
         setIsLoading(false)
       })
-  }, [])
+  }
+
+  useEffect(() => { loadData() }, [])
 
   if (loadError) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[40vh]">
         <div className="text-center max-w-md">
           <p className="text-red-400 mb-4">{loadError}</p>
-          <p className="text-slate-500 text-sm">If using Supabase, check <code className="bg-slate-800 px-1 rounded">.env</code> and tables <code className="bg-slate-800 px-1 rounded">net_income_metrics</code>, <code className="bg-slate-800 px-1 rounded">net_income_hc_projected</code>, <code className="bg-slate-800 px-1 rounded">net_income_variance</code>. Otherwise ensure Net Income CSV is available at <code className="bg-slate-800 px-1 rounded">/net-income-data.csv</code>.</p>
+          <p className="text-slate-500 text-sm mb-4">If using Supabase, check <code className="bg-slate-800 px-1 rounded">.env</code> and tables <code className="bg-slate-800 px-1 rounded">net_income_metrics</code>, <code className="bg-slate-800 px-1 rounded">net_income_hc_projected</code>, <code className="bg-slate-800 px-1 rounded">net_income_variance</code>. Otherwise ensure Net Income CSV is available at <code className="bg-slate-800 px-1 rounded">/net-income-data.csv</code>.</p>
+          <button type="button" onClick={loadData} disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-500 disabled:opacity-50">Retry</button>
         </div>
       </div>
     )
@@ -107,8 +131,18 @@ export default function NetIncomeDashboard() {
 
   if (isLoading || !parsed) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-[40vh]">
-        <div className="text-slate-500">{isLoading ? 'Loading Net Income data…' : 'No data to display.'}</div>
+      <div className="min-h-full bg-slate-950 text-slate-100 font-sans">
+        <header className="border-b border-slate-800/80 bg-slate-900/50 backdrop-blur">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+            <div className="animate-pulse bg-slate-800 rounded h-6 w-48" />
+            <div className="animate-pulse bg-slate-800 rounded h-4 w-72 mt-2" />
+          </div>
+        </header>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+          <div className="animate-pulse bg-slate-800 rounded-xl h-[420px]" />
+          <div className="animate-pulse bg-slate-800 rounded-xl h-64" />
+          <div className="animate-pulse bg-slate-800 rounded-xl h-64" />
+        </main>
       </div>
     )
   }
@@ -126,10 +160,11 @@ export default function NetIncomeDashboard() {
       TABLE_ROWS={TABLE_ROWS}
       MONTH_SHORT={MONTH_SHORT}
       formatCurrency={formatCurrency}
-      sum2026={sum2026}
+      sumAll={sumAll}
       getValueAtMonth={getValueAtMonth}
       pctChange={pctChange}
       getChartData={getChartData}
+      lastUpdated={lastUpdated}
     />
   )
 }
@@ -144,10 +179,11 @@ function NetIncomeContent({
   TABLE_ROWS,
   MONTH_SHORT,
   formatCurrency,
-  sum2026,
+  sumAll,
   getValueAtMonth,
   pctChange,
   getChartData,
+  lastUpdated,
 }) {
   const [selectedCompanies, setSelectedCompanies] = useState(['CONSOLIDATED'])
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -170,8 +206,9 @@ function NetIncomeContent({
         ? (selectedCompanies[0] === 'CONSOLIDATED' ? 'Consolidated' : selectedCompanies[0])
         : `${selectedCompanies.length} entities`
 
+  const yearSuffix = useMemo(() => months.length > 0 ? String(months[0]).split('-').pop() : '26', [months])
   const chartData = useMemo(() => getChartData(months, byCompany, selectedCompanies), [months, byCompany, selectedCompanies])
-  const chartData2026 = useMemo(() => chartData.filter((d) => String(d.month).includes('-26')), [chartData])
+  const chartDataYear = useMemo(() => chartData.filter((d) => String(d.month).endsWith('-' + yearSuffix)), [chartData, yearSuffix])
 
   const displayLabel =
     selectedCompanies.length === 0 ? 'Operating Income'
@@ -187,28 +224,33 @@ function NetIncomeContent({
       const cells = { metric: row.label }
       cols.forEach((col) => {
         const m = metricsByCompany[col.key]
-        cells[col.key] = m && m[row.key] ? sum2026(m[row.key], months) : 0
+        cells[col.key] = m && m[row.key] ? sumAll(m[row.key]) : 0
       })
       return cells
     })
-  }, [metricsByCompany, months, TABLE_COLUMNS, TABLE_ROWS, sum2026])
+  }, [metricsByCompany, months, TABLE_COLUMNS, TABLE_ROWS, sumAll])
 
-  const months2026 = useMemo(() => months.filter((m) => String(m).includes('-26')), [months])
+  const monthsYear = useMemo(() => months.filter((m) => String(m).endsWith('-' + yearSuffix)), [months, yearSuffix])
   const hcProjectedVsActual = useMemo(() => {
     const hc = metricsByCompany['Ryz Labs HC LLC']
-    if (!hc || !hc.totalIncome || months2026.length === 0) return []
+    if (!hc || !hc.totalIncome || monthsYear.length === 0) return []
     const actual = hc.totalIncome
-    return months2026.map((month, i) => {
+    return monthsYear.map((month, i) => {
       const proj = hcProjectedSales[i] ?? 0
       const act = actual[i] ?? 0
       const variance = varianceVsProjected[i] !== undefined ? varianceVsProjected[i] : act - proj
       const variancePct = proj !== 0 ? (variance / proj) * 100 : 0
       return { month, projected: proj, actual: act, variance, variancePct }
     })
-  }, [metricsByCompany, months2026, hcProjectedSales, varianceVsProjected])
+  }, [metricsByCompany, monthsYear, hcProjectedSales, varianceVsProjected])
 
-  const HC_CURRENT_MONTH_INDEX = 2
-  const hcProjectedThroughCurrentMonth = useMemo(() => hcProjectedVsActual.slice(0, HC_CURRENT_MONTH_INDEX + 1), [hcProjectedVsActual])
+  const currentMonthIndex = useMemo(() => deriveCurrentMonthIndex(monthsYear), [monthsYear])
+  const previousMonthLabel = monthsYear[currentMonthIndex - 1] || monthsYear[0]
+  const currentMonthLabel = monthsYear[currentMonthIndex] || monthsYear[monthsYear.length - 1]
+  const nextMonthLabel = monthsYear[currentMonthIndex + 1] || monthsYear[Math.min(currentMonthIndex + 1, monthsYear.length - 1)]
+  const beforePreviousLabel = monthsYear[currentMonthIndex - 2] || monthsYear[0]
+
+  const hcProjectedThroughCurrentMonth = useMemo(() => hcProjectedVsActual.slice(0, currentMonthIndex + 1), [hcProjectedVsActual, currentMonthIndex])
   const hcProjectedYtdThroughCurrentMonth = useMemo(() => {
     const rows = hcProjectedThroughCurrentMonth
     const totalProj = rows.reduce((s, r) => s + r.projected, 0)
@@ -218,77 +260,56 @@ function NetIncomeContent({
     return { projected: totalProj, actual: totalAct, variance, variancePct }
   }, [hcProjectedThroughCurrentMonth])
 
-  const tablaFebrero = useMemo(() => {
+  const buildMonthTable = (monthLabel, vsMonthLabel) => {
     const cols = TABLE_COLUMNS.filter((col) => metricsByCompany[col.key])
     return TABLE_ROWS.map((row) => {
       const cells = { metric: row.label }
       cols.forEach((col) => {
-        cells[col.key] = getValueAtMonth(metricsByCompany, col.key, row.key, months, 'February-26')
+        cells[col.key] = getValueAtMonth(metricsByCompany, col.key, row.key, months, monthLabel)
       })
-      const valFeb = getValueAtMonth(metricsByCompany, 'CONSOLIDATED', row.key, months, 'February-26')
-      const valEne = getValueAtMonth(metricsByCompany, 'CONSOLIDATED', row.key, months, 'January-26')
-      cells.pctChange = pctChange(valFeb, valEne)
+      const valCurr = getValueAtMonth(metricsByCompany, 'CONSOLIDATED', row.key, months, monthLabel)
+      const valPrev = getValueAtMonth(metricsByCompany, 'CONSOLIDATED', row.key, months, vsMonthLabel)
+      cells.pctChange = pctChange(valCurr, valPrev)
       return cells
     })
-  }, [metricsByCompany, months, TABLE_COLUMNS, TABLE_ROWS, getValueAtMonth, pctChange])
+  }
 
-  const tablaMarzo = useMemo(() => {
-    const cols = TABLE_COLUMNS.filter((col) => metricsByCompany[col.key])
-    return TABLE_ROWS.map((row) => {
-      const cells = { metric: row.label }
-      cols.forEach((col) => {
-        cells[col.key] = getValueAtMonth(metricsByCompany, col.key, row.key, months, 'March-26')
-      })
-      const valMar = getValueAtMonth(metricsByCompany, 'CONSOLIDATED', row.key, months, 'March-26')
-      const valFeb = getValueAtMonth(metricsByCompany, 'CONSOLIDATED', row.key, months, 'February-26')
-      cells.pctChange = pctChange(valMar, valFeb)
-      return cells
-    })
-  }, [metricsByCompany, months, TABLE_COLUMNS, TABLE_ROWS, getValueAtMonth, pctChange])
+  const tablaPrevious = useMemo(() => buildMonthTable(previousMonthLabel, beforePreviousLabel), [metricsByCompany, months, previousMonthLabel, beforePreviousLabel])
+  const tablaCurrent = useMemo(() => buildMonthTable(currentMonthLabel, previousMonthLabel), [metricsByCompany, months, currentMonthLabel, previousMonthLabel])
+  const tablaNext = useMemo(() => buildMonthTable(nextMonthLabel, currentMonthLabel), [metricsByCompany, months, nextMonthLabel, currentMonthLabel])
 
-  const tablaAbril = useMemo(() => {
-    const cols = TABLE_COLUMNS.filter((col) => metricsByCompany[col.key])
-    return TABLE_ROWS.map((row) => {
-      const cells = { metric: row.label }
-      cols.forEach((col) => {
-        cells[col.key] = getValueAtMonth(metricsByCompany, col.key, row.key, months, 'April-26')
-      })
-      const valApr = getValueAtMonth(metricsByCompany, 'CONSOLIDATED', row.key, months, 'April-26')
-      const valMar = getValueAtMonth(metricsByCompany, 'CONSOLIDATED', row.key, months, 'March-26')
-      cells.pctChange = pctChange(valApr, valMar)
-      return cells
-    })
-  }, [metricsByCompany, months, TABLE_COLUMNS, TABLE_ROWS, getValueAtMonth, pctChange])
-
-  const momAnalysisMarVsFeb = useMemo(() => {
+  const momAnalysis = useMemo(() => {
     const get = (company, metric) => ({
-      feb: getValueAtMonth(metricsByCompany, company, metric, months, 'February-26'),
-      mar: getValueAtMonth(metricsByCompany, company, metric, months, 'March-26'),
+      prev: getValueAtMonth(metricsByCompany, company, metric, months, previousMonthLabel),
+      curr: getValueAtMonth(metricsByCompany, company, metric, months, currentMonthLabel),
     })
-    const bullet = (feb, mar, label) => {
-      const delta = mar - feb
-      const pct = feb !== 0 ? (delta / Math.abs(feb)) * 100 : (mar !== 0 ? 100 : 0)
+    const bullet = (prev, curr, label) => {
+      const delta = curr - prev
+      const pct = prev !== 0 ? (delta / Math.abs(prev)) * 100 : (curr !== 0 ? 100 : 0)
       const direction = label === 'Total Expenses' ? (delta <= 0 ? 'increased' : 'decreased') : (delta >= 0 ? 'increased' : 'decreased')
       const absDelta = Math.abs(delta)
       const pctStr = pct >= 0 ? `+${pct.toFixed(1)}%` : `${pct.toFixed(1)}%`
-      return { label, direction, absDelta, pctStr, feb, mar }
+      return { label, direction, absDelta, pctStr, prev, curr }
     }
     return [
-      bullet(get('CONSOLIDATED', 'totalIncome').feb, get('CONSOLIDATED', 'totalIncome').mar, 'Total Revenue'),
-      bullet(get('Ryz Labs HC LLC', 'totalIncome').feb, get('Ryz Labs HC LLC', 'totalIncome').mar, 'HC Revenue'),
-      bullet(get('CONSOLIDATED', 'grossProfit').feb, get('CONSOLIDATED', 'grossProfit').mar, 'Gross Profit'),
-      bullet(get('CONSOLIDATED', 'totalExpenses').feb, get('CONSOLIDATED', 'totalExpenses').mar, 'Total Expenses'),
-      bullet(get('CONSOLIDATED', 'operatingIncome').feb, get('CONSOLIDATED', 'operatingIncome').mar, 'Operating Income'),
-      bullet(get('Offsiteio Inc', 'totalIncome').feb, get('Offsiteio Inc', 'totalIncome').mar, 'Offsiteio revenue'),
+      bullet(get('CONSOLIDATED', 'totalIncome').prev, get('CONSOLIDATED', 'totalIncome').curr, 'Total Revenue'),
+      bullet(get('Ryz Labs HC LLC', 'totalIncome').prev, get('Ryz Labs HC LLC', 'totalIncome').curr, 'HC Revenue'),
+      bullet(get('CONSOLIDATED', 'grossProfit').prev, get('CONSOLIDATED', 'grossProfit').curr, 'Gross Profit'),
+      bullet(get('CONSOLIDATED', 'totalExpenses').prev, get('CONSOLIDATED', 'totalExpenses').curr, 'Total Expenses'),
+      bullet(get('CONSOLIDATED', 'operatingIncome').prev, get('CONSOLIDATED', 'operatingIncome').curr, 'Operating Income'),
+      bullet(get('Offsiteio Inc', 'totalIncome').prev, get('Offsiteio Inc', 'totalIncome').curr, 'Offsiteio revenue'),
     ]
-  }, [metricsByCompany, months, getValueAtMonth])
+  }, [metricsByCompany, months, previousMonthLabel, currentMonthLabel])
 
   return (
     <div className="min-h-full bg-slate-950 text-slate-100 font-sans">
       <header className="border-b border-slate-800/80 bg-slate-900/50 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <h1 className="font-semibold text-xl text-white tracking-tight">Net Income Dashboard</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Ryz Holding — Operating Income by period</p>
+          <div className="flex items-center gap-3 mt-0.5">
+            <p className="text-slate-400 text-sm">Ryz Holding — Operating Income by period</p>
+            {lastUpdated && <span className="text-slate-500 text-xs">Last updated: {lastUpdated.toLocaleTimeString()}</span>}
+          </div>
         </div>
       </header>
 
@@ -332,17 +353,17 @@ function NetIncomeContent({
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 sm:p-6 shadow-xl">
           <div className="mb-4">
-            <h2 className="font-medium text-slate-200 text-base">{displayLabel} — 2026</h2>
+            <h2 className="font-medium text-slate-200 text-base">{displayLabel} — 20{yearSuffix}</h2>
             {selectedCompanies.length === 1 && selectedCompanies[0] === 'CONSOLIDATED' && (
               <p className="text-slate-500 text-sm mt-1">Ryz Holding · Consolidated P&L (monthly)</p>
             )}
           </div>
           <div className="h-[380px] w-full">
-            {chartData2026.length === 0 ? (
+            {chartDataYear.length === 0 ? (
               <div className="flex items-center justify-center h-full text-slate-500 text-sm">No data to display.</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData2026} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                <AreaChart data={chartDataYear} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
@@ -361,7 +382,7 @@ function NetIncomeContent({
                     tickLine={{ stroke: '#475569' }}
                     interval={0}
                     tickFormatter={(m) => {
-                      const name = String(m).replace(/-26$/, '')
+                      const name = String(m).replace(/-\d{2}$/, '')
                       return MONTH_SHORT[name] || name
                     }}
                   />
@@ -440,7 +461,7 @@ function NetIncomeContent({
                 <tbody>
                   {hcProjectedThroughCurrentMonth.map((row, idx) => (
                     <tr key={row.month} className={`border-b border-slate-600/80 ${idx % 2 === 1 ? 'bg-slate-700/30' : ''}`}>
-                      <td className="py-2 px-3 text-left font-medium text-slate-300">{MONTH_SHORT[String(row.month).replace(/-26$/, '')] || row.month}</td>
+                      <td className="py-2 px-3 text-left font-medium text-slate-300">{MONTH_SHORT[String(row.month).replace(/-\d{2}$/, '')] || row.month}</td>
                       <td className="py-2 px-3 text-right tabular-nums text-slate-300">{formatCurrency(row.projected)}</td>
                       <td className="py-2 px-3 text-right tabular-nums text-slate-200">{formatCurrency(row.actual)}</td>
                       <td className={`py-2 px-3 text-right tabular-nums ${row.variance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(row.variance)}</td>
@@ -454,9 +475,9 @@ function NetIncomeContent({
         )}
 
         {[
-          { title: 'February 2026 — Previous Month', data: tablaFebrero, pctLabel: 'vs Jan %' },
-          { title: 'March 2026 — Current Month', data: tablaMarzo, pctLabel: 'vs Feb %' },
-          { title: 'April 2026 — Next Month Projection', data: tablaAbril, pctLabel: 'vs Mar %', isProjection: true },
+          { title: `${formatMonthTitle(previousMonthLabel)} — Previous Month`, data: tablaPrevious, pctLabel: `vs ${MONTH_SHORT[beforePreviousLabel?.split('-')[0]] || ''} %` },
+          { title: `${formatMonthTitle(currentMonthLabel)} — Current Month`, data: tablaCurrent, pctLabel: `vs ${MONTH_SHORT[previousMonthLabel?.split('-')[0]] || ''} %` },
+          { title: `${formatMonthTitle(nextMonthLabel)} — Next Month Projection`, data: tablaNext, pctLabel: `vs ${MONTH_SHORT[currentMonthLabel?.split('-')[0]] || ''} %`, isProjection: true },
         ].map((block) => (
           <div key={block.title} className={`mt-8 rounded-xl border p-5 shadow-lg ${block.isProjection ? 'border-amber-500/40 bg-amber-950/20' : 'border-slate-600 bg-slate-800/40'}`}>
             <div className="flex items-center gap-3">
@@ -502,11 +523,11 @@ function NetIncomeContent({
 
         <div className="mt-8 rounded-xl border border-slate-600 bg-slate-800/40 p-5 shadow-lg">
           <h2 className="font-bold text-lg text-slate-100">Month-over-Month Analysis</h2>
-          <p className="mt-1 text-sm font-semibold text-slate-300">March 2026 vs February 2026 — Projections</p>
+          <p className="mt-1 text-sm font-semibold text-slate-300">{formatMonthTitle(currentMonthLabel)} vs {formatMonthTitle(previousMonthLabel)}</p>
           <ul className="mt-4 list-disc list-inside space-y-2 text-sm text-slate-300">
-            {momAnalysisMarVsFeb.map((item) => (
+            {momAnalysis.map((item) => (
               <li key={item.label}>
-                <span className="font-medium text-slate-200">{item.label}:</span> {item.direction} by {formatCurrency(item.absDelta)} ({item.pctStr}) from {formatCurrency(item.feb)} to {formatCurrency(item.mar)}.
+                <span className="font-medium text-slate-200">{item.label}:</span> {item.direction} by {formatCurrency(item.absDelta)} ({item.pctStr}) from {formatCurrency(item.prev)} to {formatCurrency(item.curr)}.
               </li>
             ))}
           </ul>
@@ -514,7 +535,7 @@ function NetIncomeContent({
 
         <div className="mt-8 rounded-xl border border-slate-600 bg-slate-800/40 p-5 shadow-lg">
           <h2 className="font-bold text-lg text-slate-100">Financial Dashboard</h2>
-          <p className="mt-1 text-sm font-semibold text-slate-300">P&L by entity — 2026 (consolidated, full year total)</p>
+          <p className="mt-1 text-sm font-semibold text-slate-300">P&L by entity — 20{yearSuffix} (consolidated, full year total)</p>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>

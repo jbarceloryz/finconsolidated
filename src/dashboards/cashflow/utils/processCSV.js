@@ -141,7 +141,8 @@ export function groupInvoicesByDay(invoices, currentMonth = null, currentYear = 
     dayData[day] = { day, paid: 0, overdue: 0, upcoming: 0, invoices: [] };
   }
 
-  invoices.forEach(invoice => {
+  invoices.forEach(originalInvoice => {
+    const invoice = { ...originalInvoice };
     const normalizedStatus = normalizeStatus(invoice.status);
     const isPaid = normalizedStatus === 'PAID' || invoice.statusCategory === 'paid';
     const isOverdue = normalizedStatus === 'OVERDUE' || normalizedStatus.replace(/\s+/g, '') === 'OVERDUE' || invoice.statusCategory === 'overdue';

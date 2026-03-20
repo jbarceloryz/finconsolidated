@@ -11,6 +11,7 @@ export default function CashflowDashboard() {
   const [invoices, setInvoices] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
   const today = new Date()
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth())
   const [selectedYear, setSelectedYear] = useState(today.getFullYear())
@@ -23,6 +24,7 @@ export default function CashflowDashboard() {
       .then((fromSupabase) => {
         if (fromSupabase !== null) {
           setInvoices(fromSupabase)
+          setLastUpdated(new Date())
           setIsLoading(false)
           return
         }
@@ -38,6 +40,7 @@ export default function CashflowDashboard() {
           })
           .then((text) => {
             setInvoices(processCSVData(text))
+            setLastUpdated(new Date())
             setIsLoading(false)
           })
       })
@@ -68,8 +71,15 @@ export default function CashflowDashboard() {
 
   if (invoices === null) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-[40vh]">
-        <div className="text-slate-500">Loading Cashflow data…</div>
+      <div className="min-h-full bg-slate-950 p-8 font-sans">
+        <div className="max-w-7xl mx-auto space-y-4">
+          <div className="animate-pulse bg-slate-800 rounded-lg h-12 w-full" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[1,2,3].map(i => <div key={i} className="animate-pulse bg-slate-800 rounded-lg h-28" />)}
+          </div>
+          <div className="animate-pulse bg-slate-800 rounded-lg h-64" />
+          <div className="animate-pulse bg-slate-800 rounded-lg h-48" />
+        </div>
       </div>
     )
   }
@@ -79,7 +89,10 @@ export default function CashflowDashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="bg-slate-900/60 border border-slate-800 rounded-lg shadow-sm p-4 mb-6">
           <div className="flex items-center justify-between">
-            <MonthFilter selectedMonth={selectedMonth} selectedYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} />
+            <div className="flex items-center gap-4">
+              <MonthFilter selectedMonth={selectedMonth} selectedYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} />
+              {lastUpdated && <span className="text-slate-500 text-xs">Last updated: {lastUpdated.toLocaleTimeString()}</span>}
+            </div>
             <button
               onClick={loadData}
               disabled={isLoading}
