@@ -4,29 +4,13 @@ import { AP_COMPANIES, AP_STATUSES } from '../../../lib/apData'
 const CATEGORIES = ['Software', 'Contractor', 'Rent', 'Utilities', 'Insurance', 'Marketing', 'Travel', 'Office Supplies', 'Legal', 'Payroll', 'Other']
 const PAYMENT_METHODS = ['ACH', 'Wire', 'Check', 'Credit Card', 'Other']
 
-function dateToDisplay(date) {
+function dateToInputValue(date) {
   if (!date) return ''
   const d = new Date(date)
+  const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
-  const y = d.getFullYear()
-  return `${m}/${day}/${y}`
-}
-
-function displayToISO(display) {
-  if (!display) return ''
-  const parts = display.replace(/[^0-9/]/g, '').split('/')
-  if (parts.length !== 3) return ''
-  const [m, d, y] = parts
-  if (!m || !d || !y || y.length !== 4) return ''
-  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
-}
-
-function formatDateInput(raw) {
-  const digits = raw.replace(/\D/g, '')
-  if (digits.length <= 2) return digits
-  if (digits.length <= 4) return digits.slice(0, 2) + '/' + digits.slice(2)
-  return digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4, 8)
+  return `${y}-${m}-${day}`
 }
 
 export default function APInvoiceForm({ invoice, onSave, onClose }) {
@@ -38,11 +22,11 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
   const [description, setDescription] = useState(invoice?.description || '')
   const [category, setCategory] = useState(invoice?.category || '')
   const [amount, setAmount] = useState(invoice?.amount || '')
-  const [recordingDateDisplay, setRecordingDateDisplay] = useState(dateToDisplay(invoice?.recordingDate) || dateToDisplay(new Date()))
-  const [dueDateDisplay, setDueDateDisplay] = useState(dateToDisplay(invoice?.dueDate) || '')
+  const [recordingDate, setRecordingDate] = useState(dateToInputValue(invoice?.recordingDate) || dateToInputValue(new Date()))
+  const [dueDate, setDueDate] = useState(dateToInputValue(invoice?.dueDate) || '')
   const [status, setStatus] = useState(invoice?.status || 'PENDING')
   const [paymentMethod, setPaymentMethod] = useState(invoice?.paymentMethod || '')
-  const [paidDateDisplay, setPaidDateDisplay] = useState(dateToDisplay(invoice?.paidDate) || '')
+  const [paidDate, setPaidDate] = useState(dateToInputValue(invoice?.paidDate) || '')
   const [notes, setNotes] = useState(invoice?.notes || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -55,9 +39,7 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
 
     if (!vendor.trim()) { setError('Vendor is required'); return }
     if (!amount || Number(amount) <= 0) { setError('Amount must be greater than 0'); return }
-    const dueDate = displayToISO(dueDateDisplay)
-    if (!dueDate) { setError('Due date is required (MM/DD/YYYY)'); return }
-    const recordingDate = displayToISO(recordingDateDisplay)
+    if (!dueDate) { setError('Due date is required'); return }
 
     setSaving(true)
     try {
@@ -70,7 +52,7 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
         amount: Number(amount),
         recordingDate: recordingDate || null,
         dueDate,
-        paidDate: showPaymentFields && paidDateDisplay ? displayToISO(paidDateDisplay) : null,
+        paidDate: showPaymentFields && paidDate ? paidDate : null,
         status,
         paymentMethod: showPaymentFields ? paymentMethod : null,
         notes: notes.trim() || null,
@@ -146,27 +128,11 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Recording Date *</label>
-              <input
-                type="text"
-                value={recordingDateDisplay}
-                onChange={(e) => setRecordingDateDisplay(formatDateInput(e.target.value))}
-                placeholder="MM/DD/YYYY"
-                maxLength={10}
-                className={inputClass}
-                required
-              />
+              <input type="date" value={recordingDate} onChange={(e) => setRecordingDate(e.target.value)} className={inputClass} required />
             </div>
             <div>
               <label className={labelClass}>Due Date *</label>
-              <input
-                type="text"
-                value={dueDateDisplay}
-                onChange={(e) => setDueDateDisplay(formatDateInput(e.target.value))}
-                placeholder="MM/DD/YYYY"
-                maxLength={10}
-                className={inputClass}
-                required
-              />
+              <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={inputClass} required />
             </div>
           </div>
 
@@ -181,14 +147,7 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
               </div>
               <div>
                 <label className={labelClass}>Paid Date</label>
-                <input
-                  type="text"
-                  value={paidDateDisplay}
-                  onChange={(e) => setPaidDateDisplay(formatDateInput(e.target.value))}
-                  placeholder="MM/DD/YYYY"
-                  maxLength={10}
-                  className={inputClass}
-                />
+                <input type="date" value={paidDate} onChange={(e) => setPaidDate(e.target.value)} className={inputClass} />
               </div>
             </div>
           )}
