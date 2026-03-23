@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import CashflowDashboard from './pages/CashflowDashboard'
 import NetIncomeDashboard from './pages/NetIncomeDashboard'
 import GPAnalysisDashboard from './pages/GPAnalysisDashboard'
+import APDashboard from './pages/APDashboard'
 import { ThemeProvider, useTheme } from './ThemeContext'
 
 class ErrorBoundary extends React.Component {
@@ -54,6 +55,7 @@ const navItems = [
   { path: '/cashflow', label: 'Cashflow' },
   { path: '/net-income', label: 'Net Income' },
   { path: '/gp-analysis', label: 'GP Analysis' },
+  { path: '/accounts-payable', label: 'AP' },
 ]
 
 function App() {
@@ -139,6 +141,7 @@ function App() {
             <Route path="/cashflow" element={<CashflowDashboard />} />
             <Route path="/net-income" element={<NetIncomeDashboard />} />
             <Route path="/gp-analysis" element={<GPAnalysisDashboard />} />
+            <Route path="/accounts-payable" element={<APDashboard />} />
           </Routes>
         </ErrorBoundary>
       </main>
