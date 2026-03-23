@@ -6,6 +6,7 @@ export default function Home() {
     { path: '/cashflow', name: 'Cashflow', description: 'Payment timeline, summary cards, invoice table and cash flow simulator.' },
     { path: '/net-income', name: 'Net Income', description: 'Operating income by period, P&L by entity, HC revenue vs projected.' },
     { path: '/gp-analysis', name: 'GP Analysis', description: 'Talent pool net margin gain/loss, onboarded vs offboarded.' },
+    { path: '/ap', name: 'AP', description: 'Accounts payable tracker — record invoices, track aging, and manage payments by company.' },
   ]
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { processCSVData, normalizeStatus } from '../utils/processCSV';
 import { supabase } from '../../../lib/supabase';
+import { fetchAPInvoices } from '../../../lib/apData';
 
 const SAVE_DEBOUNCE_MS = 1500;
 
@@ -14,7 +15,22 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
   const [newPayment, setNewPayment] = useState({ amount: '', date: '', description: '' });
   const [saveStatus, setSaveStatus] = useState('idle'); // idle | saving | saved | error
   const [loaded, setLoaded] = useState(false);
+  const [apInvoices, setApInvoices] = useState([]);
   const saveTimer = useRef(null);
+
+  // ── Load AP invoices (APPROVED + OVERDUE feed into simulator as outgoing) ──
+  useEffect(() => {
+    fetchAPInvoices()
+      .then((data) => {
+        if (data) {
+          const active = data.filter(
+            (inv) => inv.status === 'APPROVED' || inv.status === 'OVERDUE'
+          );
+          setApInvoices(active);
+        }
+      })
+      .catch((err) => console.error('Failed to load AP invoices for simulator:', err));
+  }, []);
 
   // ── Load settings from Supabase on mount ──
   useEffect(() => {
@@ -87,6 +103,24 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
           status: 'OUTGOING',
         });
       }
+    });
+
+    // ── AP invoices (APPROVED / OVERDUE) feed as outgoing payments ──
+    apInvoices.forEach(apInv => {
+      if (!apInv.amount || !apInv.dueDate) return;
+      const dueDate = new Date(apInv.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      const isOverdue = apInv.status === 'OVERDUE';
+      // Overdue AP: project payment 7 days from today (mirror AR logic)
+      const payDate = isOverdue ? (() => { const d = new Date(today); d.setDate(today.getDate() + 7); return d; })() : dueDate;
+      cashFlowEvents.push({
+        date: payDate,
+        amount: -Math.abs(apInv.amount),
+        type: 'expense',
+        description: `AP: ${apInv.vendor || apInv.company}${apInv.description ? ' - ' + apInv.description : ''}`,
+        status: isOverdue ? 'AP_OVERDUE' : 'AP',
+        source: 'ap',
+      });
     });
 
     invoices.forEach(invoice => {
@@ -163,7 +197,7 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
       runningBalance = runningBalance + projection.net;
       return { ...projection, projectedBalance: Number(runningBalance.toFixed(2)) };
     });
-  }, [invoices, currentBalance, viewMode, outgoingPayments]);
+  }, [invoices, currentBalance, viewMode, outgoingPayments, apInvoices]);
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
@@ -316,7 +350,11 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
                             <div className="space-y-1">
                               {projection.expenseInvoices.map((inv, idx) => (
                                 <div key={idx} className="flex justify-between items-start">
-                                  <span className="text-slate-300 flex-1">{inv.description || 'Outgoing Payment'}</span>
+                                  <span className="text-slate-300 flex-1">
+                                    {inv.description || 'Outgoing Payment'}
+                                    {inv.source === 'ap' && <span className="ml-1 text-[10px] text-amber-400">(AP)</span>}
+                                    {inv.status === 'AP_OVERDUE' && <span className="ml-1 text-[10px] text-rose-400">(Overdue)</span>}
+                                  </span>
                                   <span className="text-rose-400 font-medium ml-2">-{formatCurrency(Math.abs(inv.amount))}</span>
                                 </div>
                               ))}
@@ -335,10 +373,14 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
         </div>
         {projections.length > 0 && (
           <div className="mt-4 pt-4 border-t border-slate-700">
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
                 <div className="text-slate-500">Total Projected Income</div>
                 <div className="text-lg font-semibold text-emerald-400">{formatCurrency(projections.reduce((sum, p) => sum + p.income, 0))}</div>
+              </div>
+              <div>
+                <div className="text-slate-500">Total Outgoing</div>
+                <div className="text-lg font-semibold text-rose-400">-{formatCurrency(projections.reduce((sum, p) => sum + p.expenses, 0))}</div>
               </div>
               <div>
                 <div className="text-slate-500">Final Projected Balance</div>
@@ -349,7 +391,7 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
         )}
         {!currentBalance && <p className="mt-2 text-sm text-slate-500">Enter your current bank balance above to see running balance. All upcoming and overdue invoices are included below.</p>}
         <div className="mt-4 pt-4 border-t border-slate-700">
-          <p className="text-xs text-slate-500"><strong className="text-slate-400">Note:</strong> Overdue invoices are projected to be collected 7 days from today. Paid invoices are excluded from projections since they're already included in your current balance.</p>
+          <p className="text-xs text-slate-500"><strong className="text-slate-400">Note:</strong> Overdue AR invoices are projected to be collected 7 days from today. Paid invoices are excluded. AP invoices with <span className="text-amber-400">Approved</span> or <span className="text-rose-400">Overdue</span> status appear automatically as outgoing payments; once marked Paid in AP they disappear from here.</p>
         </div>
       </div>
     </div>
