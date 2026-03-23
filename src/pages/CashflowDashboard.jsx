@@ -5,10 +5,12 @@ import InvoiceTable from '../dashboards/cashflow/components/InvoiceTable'
 import MonthFilter from '../dashboards/cashflow/components/MonthFilter'
 import CashFlowSimulator from '../dashboards/cashflow/components/CashFlowSimulator'
 import { fetchCashflowFromSupabase } from '../lib/cashflowData'
+import { fetchAPForCashflow } from '../lib/apData'
 import { processCSVData } from '../dashboards/cashflow/utils/processCSV'
 
 export default function CashflowDashboard() {
   const [invoices, setInvoices] = useState(null)
+  const [apOutgoing, setApOutgoing] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -19,6 +21,8 @@ export default function CashflowDashboard() {
   const loadData = () => {
     setIsLoading(true)
     setLoadError(null)
+    // Load AP outgoing payments in parallel
+    fetchAPForCashflow().then(setApOutgoing).catch(() => setApOutgoing([]))
     // Prefer Supabase when configured
     fetchCashflowFromSupabase()
       .then((fromSupabase) => {
@@ -105,7 +109,7 @@ export default function CashflowDashboard() {
         <div className="space-y-4">
           <SummaryCards invoices={invoices} currentMonth={selectedMonth} currentYear={selectedYear} />
           <PaymentTimeline invoices={invoices} currentMonth={selectedMonth} currentYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} />
-          <CashFlowSimulator invoices={invoices} />
+          <CashFlowSimulator invoices={invoices} apOutgoing={apOutgoing} />
           <InvoiceTable invoices={invoices} currentMonth={selectedMonth} currentYear={selectedYear} />
         </div>
       </div>

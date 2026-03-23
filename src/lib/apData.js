@@ -1,5 +1,8 @@
 import { supabase, isSupabaseConfigured } from './supabase'
 
+export const AP_COMPANIES = ['HC', 'Offsiteio', 'Hiptrain', 'LLC', 'Ntrvsta']
+export const AP_STATUSES = ['PENDING', 'APPROVED', 'OVERDUE', 'PAID', 'VOID']
+
 /**
  * Fetch all AP invoices, optionally filtered by company and/or status.
  */
@@ -134,4 +137,26 @@ export async function deleteAPInvoice(id) {
     console.error('Supabase AP delete error:', error)
     throw new Error(error.message)
   }
+}
+
+/** Fetch AP invoices that should appear in cashflow simulator (APPROVED + OVERDUE only) */
+export async function fetchAPForCashflow() {
+  if (!isSupabaseConfigured()) return []
+  const { data, error } = await supabase
+    .from('accounts_payable')
+    .select('id, company, vendor, description, due_date, amount, status')
+    .in('status', ['APPROVED', 'OVERDUE'])
+    .order('due_date', { ascending: true })
+  if (error) {
+    console.error('Supabase AP cashflow fetch error:', error)
+    return []
+  }
+  return (data || []).map(row => ({
+    id: row.id,
+    amount: row.amount,
+    date: row.due_date,
+    description: `AP: ${row.vendor || row.company} — ${row.description || 'Invoice'}`,
+    status: row.status,
+    source: 'ap',
+  }))
 }

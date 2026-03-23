@@ -34,7 +34,6 @@ export default function APAgingChart({ invoices }) {
     today.setHours(0, 0, 0, 0)
 
     invoices.forEach((inv) => {
-      // Only count unpaid invoices
       if (inv.status === 'PAID' || inv.status === 'VOID') return
       if (!inv.dueDate) return
 
@@ -43,11 +42,11 @@ export default function APAgingChart({ invoices }) {
       const diffMs = today.getTime() - due.getTime()
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-      if (diffDays <= 0) buckets[0] += inv.amount       // Current (not yet due)
-      else if (diffDays <= 30) buckets[1] += inv.amount  // 1-30 days
-      else if (diffDays <= 60) buckets[2] += inv.amount  // 31-60 days
-      else if (diffDays <= 90) buckets[3] += inv.amount  // 61-90 days
-      else buckets[4] += inv.amount                       // 90+ days
+      if (diffDays <= 0) buckets[0] += inv.amount
+      else if (diffDays <= 30) buckets[1] += inv.amount
+      else if (diffDays <= 60) buckets[2] += inv.amount
+      else if (diffDays <= 90) buckets[3] += inv.amount
+      else buckets[4] += inv.amount
     })
 
     return BUCKET_LABELS.map((label, i) => ({ label, amount: buckets[i] }))

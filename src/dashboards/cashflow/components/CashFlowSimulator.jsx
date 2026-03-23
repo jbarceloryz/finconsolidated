@@ -5,7 +5,7 @@ import { fetchAPInvoices } from '../../../lib/apData';
 
 const SAVE_DEBOUNCE_MS = 1500;
 
-const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
+const CashFlowSimulator = ({ invoices: invoicesProp, csvData, apOutgoing = [] }) => {
   const [currentBalance, setCurrentBalance] = useState(0);
   const [balanceInputValue, setBalanceInputValue] = useState('');
   const [viewMode, setViewMode] = useState('weekly');
@@ -298,6 +298,25 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData }) => {
                   <span className="text-rose-400 font-semibold">-{formatCurrency(Math.abs(parseFloat(payment.amount) || 0))}</span>
                   <button onClick={() => setOutgoingPayments(outgoingPayments.filter((_, i) => i !== idx))} className="text-rose-400 hover:text-rose-300">×</button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {apInvoices.length > 0 && (
+        <div className="mb-4 p-3 bg-violet-500/10 rounded-lg border border-violet-500/30">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-violet-400">AP Invoices (auto-synced)</h3>
+            <span className="text-xs text-violet-400/70">{apInvoices.length} active</span>
+          </div>
+          <div className="space-y-1">
+            {apInvoices.map((ap) => (
+              <div key={ap.id} className="flex items-center justify-between text-xs">
+                <span className="text-violet-300">
+                  AP: {ap.vendor || ap.company}{ap.description ? ` - ${ap.description}` : ''} - {ap.dueDate ? new Date(ap.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                  {ap.status === 'OVERDUE' && <span className="ml-1 text-rose-400 text-[10px]">(Overdue)</span>}
+                </span>
+                <span className="text-violet-400 font-semibold">-{formatCurrency(Math.abs(ap.amount))}</span>
               </div>
             ))}
           </div>
