@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { processCSVData, normalizeStatus } from '../utils/processCSV';
 import { supabase } from '../../../lib/supabase';
 import { fetchAPInvoices } from '../../../lib/apData';
+import { IS_DEMO } from '../../../lib/DataCacheContext';
 
 const SAVE_DEBOUNCE_MS = 1500;
 
@@ -32,9 +33,9 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData, apOutgoing = [] })
       .catch((err) => console.error('Failed to load AP invoices for simulator:', err));
   }, []);
 
-  // ── Load settings from Supabase on mount ──
+  // ── Load settings from Supabase on mount (skip in demo mode) ──
   useEffect(() => {
-    if (!supabase) { setLoaded(true); return; }
+    if (IS_DEMO || !supabase) { setCurrentBalance(25000); setLoaded(true); return; }
     supabase
       .from('cashflow_settings')
       .select('*')
@@ -52,9 +53,9 @@ const CashFlowSimulator = ({ invoices: invoicesProp, csvData, apOutgoing = [] })
       });
   }, []);
 
-  // ── Save helper ──
+  // ── Save helper (no-op in demo mode) ──
   const saveToSupabase = useCallback(async (balance, payments) => {
-    if (!supabase) return;
+    if (IS_DEMO || !supabase) return;
     setSaveStatus('saving');
     const { error } = await supabase
       .from('cashflow_settings')

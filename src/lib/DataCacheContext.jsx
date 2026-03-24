@@ -1,9 +1,12 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
+import React, { createContext, useContext, useCallback, useRef } from 'react'
 import { fetchCashflowFromSupabase } from './cashflowData'
 import { fetchNetIncomeFromSupabase } from './netIncomeData'
 import { fetchAPInvoices, fetchAPForCashflow } from './apData'
+import { getDemoCashflowInvoices, getDemoNetIncomeData, getDemoAPInvoices, getDemoAPForCashflow } from './mockData'
 
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+export const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
 
 const DataCacheContext = createContext(null)
 
@@ -37,6 +40,11 @@ export function DataCacheProvider({ children }) {
       const cached = getCached('cashflow')
       if (cached) return cached
     }
+    if (IS_DEMO) {
+      const data = getDemoCashflowInvoices()
+      setCached('cashflow', data)
+      return data
+    }
     const data = await fetchCashflowFromSupabase()
     if (data !== null) setCached('cashflow', data)
     return data
@@ -46,6 +54,11 @@ export function DataCacheProvider({ children }) {
     if (!forceRefresh) {
       const cached = getCached('netIncome')
       if (cached) return cached
+    }
+    if (IS_DEMO) {
+      const data = getDemoNetIncomeData()
+      setCached('netIncome', data)
+      return data
     }
     const data = await fetchNetIncomeFromSupabase()
     if (data !== null) setCached('netIncome', data)
@@ -57,6 +70,11 @@ export function DataCacheProvider({ children }) {
       const cached = getCached('ap')
       if (cached) return cached
     }
+    if (IS_DEMO) {
+      const data = getDemoAPInvoices()
+      setCached('ap', data)
+      return data
+    }
     const data = await fetchAPInvoices()
     if (data !== null) setCached('ap', data)
     return data
@@ -66,6 +84,11 @@ export function DataCacheProvider({ children }) {
     if (!forceRefresh) {
       const cached = getCached('apCashflow')
       if (cached) return cached
+    }
+    if (IS_DEMO) {
+      const data = getDemoAPForCashflow()
+      setCached('apCashflow', data)
+      return data
     }
     const data = await fetchAPForCashflow()
     if (data) setCached('apCashflow', data)

@@ -12,7 +12,9 @@ import {
 import { parseFinancialCsv, getChartData } from '../dashboards/netincome/utils/parseFinancialCsv'
 import { useDataCache } from '../lib/DataCacheContext'
 
-const TABLE_COLUMNS = [
+const _IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
+
+const TABLE_COLUMNS_REAL = [
   { key: 'Ryz Labs LLC', label: 'Ryz Labs LLC' },
   { key: 'Ryz Labs HC LLC', label: 'HC' },
   { key: 'Hip Train Inc', label: 'Hiptrain' },
@@ -21,6 +23,14 @@ const TABLE_COLUMNS = [
   { key: 'Ntrvsta', label: 'Ntrvsta' },
   { key: 'CONSOLIDATED', label: 'Total' },
 ]
+
+function deriveTableColumns(metricsByCompany) {
+  if (!_IS_DEMO) return TABLE_COLUMNS_REAL
+  const companies = Object.keys(metricsByCompany || {}).filter(c => c !== 'CONSOLIDATED')
+  const cols = companies.map(c => ({ key: c, label: c }))
+  cols.push({ key: 'CONSOLIDATED', label: 'Total' })
+  return cols
+}
 const TABLE_ROWS = [
   { key: 'totalIncome', label: 'Total Income' },
   { key: 'cogs', label: 'Total COGS' },
@@ -157,7 +167,7 @@ export default function NetIncomeDashboard() {
       metricsByCompany={metricsByCompany}
       hcProjectedSales={hcProjectedSales || []}
       varianceVsProjected={varianceVsProjected || []}
-      TABLE_COLUMNS={TABLE_COLUMNS}
+      TABLE_COLUMNS={deriveTableColumns(metricsByCompany)}
       TABLE_ROWS={TABLE_ROWS}
       MONTH_SHORT={MONTH_SHORT}
       formatCurrency={formatCurrency}
@@ -232,8 +242,11 @@ function NetIncomeContent({
   }, [metricsByCompany, months, TABLE_COLUMNS, TABLE_ROWS, sumAll])
 
   const monthsYear = useMemo(() => months.filter((m) => String(m).endsWith('-' + yearSuffix)), [months, yearSuffix])
+  const _hcKey = _IS_DEMO ? (TABLE_COLUMNS.find(c => c.key !== 'CONSOLIDATED') || {}).key : 'Ryz Labs HC LLC'
+  const _secondKey = _IS_DEMO ? (TABLE_COLUMNS.filter(c => c.key !== 'CONSOLIDATED')[1] || {}).key : 'Offsiteio Inc'
+
   const hcProjectedVsActual = useMemo(() => {
-    const hc = metricsByCompany['Ryz Labs HC LLC']
+    const hc = metricsByCompany[_hcKey]
     if (!hc || !hc.totalIncome || monthsYear.length === 0) return []
     const actual = hc.totalIncome
     return monthsYear.map((month, i) => {
@@ -294,11 +307,11 @@ function NetIncomeContent({
     }
     return [
       bullet(get('CONSOLIDATED', 'totalIncome').prev, get('CONSOLIDATED', 'totalIncome').curr, 'Total Revenue'),
-      bullet(get('Ryz Labs HC LLC', 'totalIncome').prev, get('Ryz Labs HC LLC', 'totalIncome').curr, 'HC Revenue'),
+      bullet(get(_hcKey, 'totalIncome').prev, get(_hcKey, 'totalIncome').curr, `${_IS_DEMO ? _hcKey : 'HC'} Revenue`),
       bullet(get('CONSOLIDATED', 'grossProfit').prev, get('CONSOLIDATED', 'grossProfit').curr, 'Gross Profit'),
       bullet(get('CONSOLIDATED', 'totalExpenses').prev, get('CONSOLIDATED', 'totalExpenses').curr, 'Total Expenses'),
       bullet(get('CONSOLIDATED', 'operatingIncome').prev, get('CONSOLIDATED', 'operatingIncome').curr, 'Operating Income'),
-      bullet(get('Offsiteio Inc', 'totalIncome').prev, get('Offsiteio Inc', 'totalIncome').curr, 'Offsiteio revenue'),
+      bullet(get(_secondKey, 'totalIncome').prev, get(_secondKey, 'totalIncome').curr, `${_IS_DEMO ? _secondKey : 'Offsiteio'} revenue`),
     ]
   }, [metricsByCompany, months, previousMonthLabel, currentMonthLabel])
 
@@ -308,7 +321,7 @@ function NetIncomeContent({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <h1 className="font-semibold text-xl text-white tracking-tight">Net Income Dashboard</h1>
           <div className="flex items-center gap-3 mt-0.5">
-            <p className="text-slate-400 text-sm">Ryz Holding — Operating Income by period</p>
+            <p className="text-slate-400 text-sm">{_IS_DEMO ? 'Demo Company' : 'Ryz Holding'} — Operating Income by period</p>
             {lastUpdated && <span className="text-slate-500 text-xs">Last updated: {lastUpdated.toLocaleTimeString()}</span>}
           </div>
         </div>

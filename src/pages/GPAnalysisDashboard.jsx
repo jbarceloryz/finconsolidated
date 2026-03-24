@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react'
+import { IS_DEMO } from '../lib/DataCacheContext'
 
 /** GP Analysis runs in an iframe. In dev, Vite serves it from the "GP Analysis" folder at /gp-analysis/. */
-const GP_IFRAME_SRC = '/gp-analysis/index.html'
+const GP_IFRAME_SRC = `/gp-analysis/index.html${IS_DEMO ? '?demo=true' : ''}`
 
 export default function GPAnalysisDashboard() {
   const iframeRef = useRef(null)

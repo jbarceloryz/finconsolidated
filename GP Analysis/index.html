@@ -325,9 +325,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="data.js"></script>
   <script>
+    // Check for demo mode via URL param (set by parent React app)
+    const _IS_DEMO = new URLSearchParams(window.location.search).get('demo') === 'true';
     const _SUPABASE_URL  = 'https://fvqmiemlmiqwgezkdurp.supabase.co';
     const _SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2cW1pZW1sbWlxd2dlemtkdXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2ODU3NzgsImV4cCI6MjA4OTI2MTc3OH0.Pw9ThzCp3E3JBb8bZ1nk5ZyvkonKvVPJUQ_s4fWFIu4';
-    const _sbClient      = supabase.createClient(_SUPABASE_URL, _SUPABASE_KEY);
+    const _sbClient      = _IS_DEMO ? null : supabase.createClient(_SUPABASE_URL, _SUPABASE_KEY);
     const _MO_ABBR       = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
     function _isoToDisplay(iso) {
@@ -336,7 +338,38 @@
       return `${_MO_ABBR[parseInt(m,10)-1]} ${parseInt(d,10)}, ${y}`;
     }
 
+    function _generateDemoTalentPoolCSV() {
+      var MO = _MO_ABBR;
+      var Y = new Date().getFullYear();
+      var M = new Date().getMonth();
+      var names = ['Alex Rivera','Sam Chen','Jordan Blake','Morgan Lee','Casey Patel','Taylor Quinn','Avery Simmons','Riley Torres','Jamie Nakamura','Drew Fischer','Pat Costa','Robin Andersen','Harper Wells','Sage Kim','Quinn Douglas'];
+      var roles = ['Senior Engineer','Product Manager','Data Analyst','UX Designer','DevOps Engineer','QA Lead','Full-Stack Dev','ML Engineer','Tech Lead','Backend Engineer','Frontend Developer','Solutions Architect','Scrum Master','Cloud Engineer','Security Analyst'];
+      var cos = ['Acme Corp','TechFlow Inc','NovaStar LLC','BrightPath Co','Zenith Labs'];
+      var cols = ['Candidate Name','Role','Company','Rate','Actual Cost','Net Margin','Rate Type','Start Date','Hire Date','End Date','Status','Month'];
+      var lines = [cols.join(',')];
+      function fmt(dt) { return MO[dt.getMonth()] + ' ' + String(dt.getDate()).padStart(2,'0') + ', ' + dt.getFullYear(); }
+      for (var mi = -3; mi <= 0; mi++) {
+        var dt = new Date(Y, M + mi, 1);
+        var monthLabel = (dt.getMonth()+1) + '/' + String(dt.getFullYear()).slice(-2);
+        for (var j = 0; j < 5; j++) {
+          var idx = ((mi+3)*5+j) % names.length;
+          var rate = 80 + j*10 + (mi+3)*5;
+          var cost = (rate * 0.6).toFixed(2);
+          var margin = (rate - rate*0.6).toFixed(2);
+          var sd = new Date(Y, M+mi, 1+j*2);
+          var hd = new Date(Y, M+mi, 3+j*2);
+          var isOff = mi < 0 && j === 0;
+          var ed = isOff ? new Date(Y, M+mi, 28) : null;
+          var status = isOff ? 'Offboarded' : 'Onboarded';
+          var vals = [names[idx],roles[idx],cos[j%cos.length],rate,cost,margin,'Hourly',fmt(sd),fmt(hd),ed?fmt(ed):'N/A',status,monthLabel];
+          lines.push(vals.map(function(v){var s=String(v);return s.indexOf(',')>=0?'"'+s+'"':s;}).join(','));
+        }
+      }
+      return lines.join('\n');
+    }
+
     async function loadTalentPoolFromSupabase() {
+      if (_IS_DEMO) return _generateDemoTalentPoolCSV();
       const { data, error } = await _sbClient
         .from('talent_pool')
         .select('*')

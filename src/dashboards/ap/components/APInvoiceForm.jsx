@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { AP_COMPANIES } from '../../../lib/apData'
 
-const COMPANIES = ['HC', 'Offsiteio', 'Hiptrain', 'LLC', 'Ntrvsta']
+const COMPANIES = AP_COMPANIES
 const CATEGORIES = ['Software', 'Contractor', 'Rent', 'Utilities', 'Insurance', 'Marketing', 'Travel', 'Office Supplies', 'Legal', 'Payroll', 'Other']
 const STATUSES = ['PENDING', 'APPROVED', 'PAID', 'OVERDUE', 'VOID']
 const PAYMENT_METHODS = ['ACH', 'Wire', 'Check', 'Credit Card', 'Other']

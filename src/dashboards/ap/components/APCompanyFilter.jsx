@@ -1,6 +1,7 @@
 import React from 'react'
+import { AP_COMPANIES } from '../../../lib/apData'
 
-const COMPANIES = ['all', 'HC', 'Offsiteio', 'Hiptrain', 'LLC', 'Ntrvsta']
+const COMPANIES = ['all', ...AP_COMPANIES]
 
 export default function APCompanyFilter({ value, onChange }) {
   return (

@@ -2,7 +2,7 @@ import React, { useState, Suspense } from 'react'
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import { ThemeProvider, useTheme } from './ThemeContext'
-import { DataCacheProvider } from './lib/DataCacheContext'
+import { DataCacheProvider, IS_DEMO } from './lib/DataCacheContext'
 
 // Lazy-load heavy dashboard pages — only downloaded when the user navigates to them
 const CashflowDashboard = React.lazy(() => import('./pages/CashflowDashboard'))
@@ -94,7 +94,7 @@ function PageHeader() {
 }
 
 function App() {
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(AUTH_KEY) === '1')
+  const [unlocked, setUnlocked] = useState(() => IS_DEMO || sessionStorage.getItem(AUTH_KEY) === '1')
   const [passwordInput, setPasswordInput] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -194,6 +194,15 @@ function App() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-auto">
+        {/* Demo mode banner */}
+        {IS_DEMO && (
+          <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 text-center">
+            <span className="text-amber-300 text-xs font-medium">
+              🔶 Demo Mode — All data shown is sample data for demonstration purposes only
+            </span>
+          </div>
+        )}
+
         {/* Mobile hamburger + breadcrumb header */}
         <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-800 bg-slate-900/60">
           <button

@@ -1,12 +1,26 @@
 import { supabase, isSupabaseConfigured } from './supabase'
+import { getDemoAPInvoices, getDemoAPForCashflow, DEMO_COMPANIES } from './mockData'
 
-export const AP_COMPANIES = ['HC', 'Offsiteio', 'Hiptrain', 'LLC', 'Ntrvsta']
+const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
+
+export const AP_COMPANIES = IS_DEMO ? DEMO_COMPANIES : ['HC', 'Offsiteio', 'Hiptrain', 'LLC', 'Ntrvsta']
 export const AP_STATUSES = ['PENDING', 'APPROVED', 'OVERDUE', 'PAID', 'VOID']
+
+// ── In-memory store for demo mode ────────────────────────────────────────────
+let _demoStore = null
+let _demoNextId = 200
+
+function _getDemoStore() {
+  if (!_demoStore) _demoStore = getDemoAPInvoices()
+  return _demoStore
+}
 
 /**
  * Fetch all AP invoices, optionally filtered by company and/or status.
  */
 export async function fetchAPInvoices(filters = {}) {
+  if (IS_DEMO) return [..._getDemoStore()]
+
   if (!isSupabaseConfigured()) return null
 
   let query = supabase
@@ -62,6 +76,29 @@ export async function fetchAPInvoices(filters = {}) {
  * Create a new AP invoice.
  */
 export async function createAPInvoice(invoice) {
+  if (IS_DEMO) {
+    const parseDate = (d) => d ? new Date(d) : null
+    const newInv = {
+      id: _demoNextId++,
+      company: invoice.company,
+      vendor: invoice.vendor || '',
+      invoiceNumber: invoice.invoiceNumber || '',
+      description: invoice.description || '',
+      category: invoice.category || '',
+      amount: Number(invoice.amount) || 0,
+      recordingDate: parseDate(invoice.recordingDate),
+      dueDate: parseDate(invoice.dueDate),
+      paidDate: parseDate(invoice.paidDate),
+      status: invoice.status || 'PENDING',
+      paymentMethod: invoice.paymentMethod || '',
+      notes: invoice.notes || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    _getDemoStore().push(newInv)
+    return newInv
+  }
+
   if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
 
   const { data, error } = await supabase
@@ -93,6 +130,17 @@ export async function createAPInvoice(invoice) {
  * Update an existing AP invoice.
  */
 export async function updateAPInvoice(id, updates) {
+  if (IS_DEMO) {
+    const store = _getDemoStore()
+    const idx = store.findIndex((inv) => inv.id === id)
+    if (idx === -1) throw new Error('Invoice not found')
+    Object.keys(updates).forEach((key) => {
+      if (updates[key] !== undefined) store[idx][key] = updates[key]
+    })
+    store[idx].updatedAt = new Date().toISOString()
+    return store[idx]
+  }
+
   if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
 
   const payload = {}
@@ -126,6 +174,13 @@ export async function updateAPInvoice(id, updates) {
  * Delete an AP invoice.
  */
 export async function deleteAPInvoice(id) {
+  if (IS_DEMO) {
+    const store = _getDemoStore()
+    const idx = store.findIndex((inv) => inv.id === id)
+    if (idx !== -1) store.splice(idx, 1)
+    return
+  }
+
   if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
 
   const { error } = await supabase
@@ -141,6 +196,8 @@ export async function deleteAPInvoice(id) {
 
 /** Fetch AP invoices that should appear in cashflow simulator (APPROVED + OVERDUE only) */
 export async function fetchAPForCashflow() {
+  if (IS_DEMO) return getDemoAPForCashflow()
+
   if (!isSupabaseConfigured()) return []
   const { data, error } = await supabase
     .from('accounts_payable')
