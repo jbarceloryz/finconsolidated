@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { AP_COMPANIES, AP_STATUSES } from '../../../lib/apData'
 
+const COMPANIES = ['HC', 'Offsiteio', 'Hiptrain', 'LLC', 'Ntrvsta']
 const CATEGORIES = ['Software', 'Contractor', 'Rent', 'Utilities', 'Insurance', 'Marketing', 'Travel', 'Office Supplies', 'Legal', 'Payroll', 'Other']
+const STATUSES = ['PENDING', 'APPROVED', 'PAID', 'OVERDUE', 'VOID']
 const PAYMENT_METHODS = ['ACH', 'Wire', 'Check', 'Credit Card', 'Other']
 
-function dateToInputValue(date) {
+function formatDateForInput(date) {
   if (!date) return ''
   const d = new Date(date)
   const y = d.getFullYear()
@@ -22,11 +23,11 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
   const [description, setDescription] = useState(invoice?.description || '')
   const [category, setCategory] = useState(invoice?.category || '')
   const [amount, setAmount] = useState(invoice?.amount || '')
-  const [recordingDate, setRecordingDate] = useState(dateToInputValue(invoice?.recordingDate) || dateToInputValue(new Date()))
-  const [dueDate, setDueDate] = useState(dateToInputValue(invoice?.dueDate) || '')
+  const [recordingDate, setRecordingDate] = useState(formatDateForInput(invoice?.recordingDate) || formatDateForInput(new Date()))
+  const [dueDate, setDueDate] = useState(formatDateForInput(invoice?.dueDate) || '')
   const [status, setStatus] = useState(invoice?.status || 'PENDING')
   const [paymentMethod, setPaymentMethod] = useState(invoice?.paymentMethod || '')
-  const [paidDate, setPaidDate] = useState(dateToInputValue(invoice?.paidDate) || '')
+  const [paidDate, setPaidDate] = useState(formatDateForInput(invoice?.paidDate) || '')
   const [notes, setNotes] = useState(invoice?.notes || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -50,7 +51,7 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
         description: description.trim(),
         category: category || null,
         amount: Number(amount),
-        recordingDate: recordingDate || null,
+        recordingDate,
         dueDate,
         paidDate: showPaymentFields && paidDate ? paidDate : null,
         status,
@@ -80,11 +81,12 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
         {error && <p className="text-sm text-rose-400 mb-3">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Row 1: Company + Vendor */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Company *</label>
               <select value={company} onChange={(e) => setCompany(e.target.value)} className={selectClass} required>
-                {AP_COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
@@ -93,6 +95,7 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
             </div>
           </div>
 
+          {/* Row 2: Invoice # + Category */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Invoice Number</label>
@@ -107,11 +110,13 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
             </div>
           </div>
 
+          {/* Description */}
           <div>
             <label className={labelClass}>Description *</label>
             <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} placeholder="What is this invoice for?" required />
           </div>
 
+          {/* Row 3: Amount + Status */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Amount (USD) *</label>
@@ -120,11 +125,12 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
             <div>
               <label className={labelClass}>Status</label>
               <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectClass}>
-                {AP_STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
+                {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
               </select>
             </div>
           </div>
 
+          {/* Row 4: Recording Date + Due Date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Recording Date *</label>
@@ -136,6 +142,7 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
             </div>
           </div>
 
+          {/* Payment fields (shown only when PAID) */}
           {showPaymentFields && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -152,11 +159,13 @@ export default function APInvoiceForm({ invoice, onSave, onClose }) {
             </div>
           )}
 
+          {/* Notes */}
           <div>
             <label className={labelClass}>Notes</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={inputClass + ' h-20 resize-none'} placeholder="Additional notes..." />
           </div>
 
+          {/* Buttons */}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="button"

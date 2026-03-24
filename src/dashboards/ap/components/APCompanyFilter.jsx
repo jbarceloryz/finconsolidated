@@ -1,5 +1,6 @@
 import React from 'react'
-import { AP_COMPANIES } from '../../../lib/apData'
+
+const COMPANIES = ['all', 'HC', 'Offsiteio', 'Hiptrain', 'LLC', 'Ntrvsta']
 
 export default function APCompanyFilter({ value, onChange }) {
   return (
@@ -10,9 +11,10 @@ export default function APCompanyFilter({ value, onChange }) {
         onChange={(e) => onChange(e.target.value)}
         className="px-3 py-1.5 text-sm border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-800 text-slate-200"
       >
-        <option value="all">All Companies</option>
-        {AP_COMPANIES.map((c) => (
-          <option key={c} value={c}>{c}</option>
+        {COMPANIES.map((c) => (
+          <option key={c} value={c}>
+            {c === 'all' ? 'All Companies' : c}
+          </option>
         ))}
       </select>
     </div>
