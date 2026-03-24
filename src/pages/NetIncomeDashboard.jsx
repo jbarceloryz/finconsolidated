@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   AreaChart,
   Area,
@@ -10,7 +10,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { parseFinancialCsv, getChartData } from '../dashboards/netincome/utils/parseFinancialCsv'
-import { fetchNetIncomeFromSupabase } from '../lib/netIncomeData'
+import { useDataCache } from '../lib/DataCacheContext'
 
 const TABLE_COLUMNS = [
   { key: 'Ryz Labs LLC', label: 'Ryz Labs LLC' },
@@ -82,11 +82,12 @@ export default function NetIncomeDashboard() {
   const [loadError, setLoadError] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const { fetchNetIncome } = useDataCache()
 
-  const loadData = () => {
+  const loadData = useCallback((forceRefresh = false) => {
     setIsLoading(true)
     setLoadError(null)
-    fetchNetIncomeFromSupabase()
+    fetchNetIncome(forceRefresh)
       .then((fromSupabase) => {
         if (fromSupabase !== null) {
           setParsed(fromSupabase)
@@ -113,9 +114,9 @@ export default function NetIncomeDashboard() {
         setLoadError(err?.message || 'Failed to load data')
         setIsLoading(false)
       })
-  }
+  }, [fetchNetIncome])
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { loadData(false) }, [loadData])
 
   if (loadError) {
     return (
@@ -123,7 +124,7 @@ export default function NetIncomeDashboard() {
         <div className="text-center max-w-md">
           <p className="text-red-400 mb-4">{loadError}</p>
           <p className="text-slate-500 text-sm mb-4">If using Supabase, check <code className="bg-slate-800 px-1 rounded">.env</code> and tables <code className="bg-slate-800 px-1 rounded">net_income_metrics</code>, <code className="bg-slate-800 px-1 rounded">net_income_hc_projected</code>, <code className="bg-slate-800 px-1 rounded">net_income_variance</code>. Otherwise ensure Net Income CSV is available at <code className="bg-slate-800 px-1 rounded">/net-income-data.csv</code>.</p>
-          <button type="button" onClick={loadData} disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-500 disabled:opacity-50">Retry</button>
+          <button type="button" onClick={() => loadData(true)} disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-500 disabled:opacity-50">Retry</button>
         </div>
       </div>
     )

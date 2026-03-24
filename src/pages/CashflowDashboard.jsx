@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import PaymentTimeline from '../dashboards/cashflow/components/PaymentTimeline'
 import SummaryCards from '../dashboards/cashflow/components/SummaryCards'
 import InvoiceTable from '../dashboards/cashflow/components/InvoiceTable'
 import MonthFilter from '../dashboards/cashflow/components/MonthFilter'
 import CashFlowSimulator from '../dashboards/cashflow/components/CashFlowSimulator'
-import { fetchCashflowFromSupabase } from '../lib/cashflowData'
-import { fetchAPForCashflow } from '../lib/apData'
+import { useDataCache } from '../lib/DataCacheContext'
 import { processCSVData } from '../dashboards/cashflow/utils/processCSV'
 
 export default function CashflowDashboard() {
@@ -17,14 +16,15 @@ export default function CashflowDashboard() {
   const today = new Date()
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth())
   const [selectedYear, setSelectedYear] = useState(today.getFullYear())
+  const { fetchCashflow, fetchAPCashflow } = useDataCache()
 
-  const loadData = () => {
+  const loadData = useCallback((forceRefresh = false) => {
     setIsLoading(true)
     setLoadError(null)
     // Load AP outgoing payments in parallel
-    fetchAPForCashflow().then(setApOutgoing).catch(() => setApOutgoing([]))
-    // Prefer Supabase when configured
-    fetchCashflowFromSupabase()
+    fetchAPCashflow(forceRefresh).then((data) => data && setApOutgoing(data)).catch(() => setApOutgoing([]))
+    // Prefer Supabase (with cache) when configured
+    fetchCashflow(forceRefresh)
       .then((fromSupabase) => {
         if (fromSupabase !== null) {
           setInvoices(fromSupabase)
@@ -53,11 +53,11 @@ export default function CashflowDashboard() {
         setIsLoading(false)
         setLoadError(err.message || 'Failed to load data')
       })
-  }
+  }, [fetchCashflow, fetchAPCashflow])
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadData(false)
+  }, [loadData])
 
   if (loadError) {
     return (
@@ -67,7 +67,7 @@ export default function CashflowDashboard() {
           <p className="text-slate-500 text-sm mb-4">
             If using Supabase, check <code className="bg-slate-800 px-1 rounded">.env</code> (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY) and the <code className="bg-slate-800 px-1 rounded">cashflow_invoices</code> table. Otherwise ensure <code className="bg-slate-800 px-1 rounded">Cashflow/db.csv</code> exists.
           </p>
-          <button type="button" onClick={loadData} disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-500 disabled:opacity-50">Retry</button>
+          <button type="button" onClick={() => loadData(true)} disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-500 disabled:opacity-50">Retry</button>
         </div>
       </div>
     )
@@ -98,7 +98,7 @@ export default function CashflowDashboard() {
               {lastUpdated && <span className="text-slate-500 text-xs">Last updated: {lastUpdated.toLocaleTimeString()}</span>}
             </div>
             <button
-              onClick={loadData}
+              onClick={() => loadData(true)}
               disabled={isLoading}
               className="px-4 py-2 text-sm font-medium text-emerald-400 bg-slate-800 border border-slate-600 rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950 transition-colors disabled:opacity-50"
             >

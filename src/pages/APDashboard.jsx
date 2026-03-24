@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import APSummaryCards from '../dashboards/ap/components/APSummaryCards'
 import APInvoiceTable from '../dashboards/ap/components/APInvoiceTable'
 import APInvoiceForm from '../dashboards/ap/components/APInvoiceForm'
 import APCompanyFilter from '../dashboards/ap/components/APCompanyFilter'
 import APAgingChart from '../dashboards/ap/components/APAgingChart'
-import { fetchAPInvoices, createAPInvoice, updateAPInvoice, deleteAPInvoice } from '../lib/apData'
+import { createAPInvoice, updateAPInvoice, deleteAPInvoice } from '../lib/apData'
+import { useDataCache } from '../lib/DataCacheContext'
 
 export default function APDashboard() {
   const [invoices, setInvoices] = useState(null)
@@ -14,11 +15,12 @@ export default function APDashboard() {
   const [companyFilter, setCompanyFilter] = useState('all')
   const [showForm, setShowForm] = useState(false)
   const [editingInvoice, setEditingInvoice] = useState(null)
+  const { fetchAP, invalidate } = useDataCache()
 
-  const loadData = () => {
+  const loadData = useCallback((forceRefresh = false) => {
     setIsLoading(true)
     setLoadError(null)
-    fetchAPInvoices()
+    fetchAP(forceRefresh)
       .then((data) => {
         if (data !== null) {
           setInvoices(data)
@@ -33,11 +35,11 @@ export default function APDashboard() {
         setIsLoading(false)
         setLoadError(err.message || 'Failed to load data')
       })
-  }
+  }, [fetchAP])
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadData(false)
+  }, [loadData])
 
   const filteredInvoices = useMemo(() => {
     if (!invoices) return []
@@ -53,7 +55,10 @@ export default function APDashboard() {
     }
     setShowForm(false)
     setEditingInvoice(null)
-    loadData()
+    // Invalidate both AP and AP-cashflow caches since data changed
+    invalidate('ap')
+    invalidate('apCashflow')
+    loadData(true)
   }
 
   const handleEdit = (inv) => {
@@ -64,7 +69,9 @@ export default function APDashboard() {
   const handleDelete = async (id) => {
     try {
       await deleteAPInvoice(id)
-      loadData()
+      invalidate('ap')
+      invalidate('apCashflow')
+      loadData(true)
     } catch (err) {
       console.error('Delete failed:', err)
       alert('Failed to delete invoice: ' + err.message)
@@ -76,7 +83,9 @@ export default function APDashboard() {
     const paidDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
     try {
       await updateAPInvoice(inv.id, { status: 'PAID', paidDate, paymentMethod: null })
-      loadData()
+      invalidate('ap')
+      invalidate('apCashflow')
+      loadData(true)
     } catch (err) {
       console.error('Mark paid failed:', err)
       alert('Failed to mark as paid: ' + err.message)
@@ -92,7 +101,7 @@ export default function APDashboard() {
           <p className="text-slate-500 text-sm mb-4">
             Check <code className="bg-slate-800 px-1 rounded">.env</code> (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY) and the <code className="bg-slate-800 px-1 rounded">accounts_payable</code> table.
           </p>
-          <button type="button" onClick={loadData} disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-500 disabled:opacity-50">
+          <button type="button" onClick={() => loadData(true)} disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-500 disabled:opacity-50">
             Retry
           </button>
         </div>
@@ -136,7 +145,7 @@ export default function APDashboard() {
                 + Add Invoice
               </button>
               <button
-                onClick={loadData}
+                onClick={() => loadData(true)}
                 disabled={isLoading}
                 className="px-4 py-2 text-sm font-medium text-emerald-400 bg-slate-800 border border-slate-600 rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950 transition-colors disabled:opacity-50"
               >
