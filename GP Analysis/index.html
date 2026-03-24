@@ -1202,6 +1202,11 @@
     });
 
     function init() {
+      // In demo mode, skip auth entirely
+      if (_IS_DEMO) {
+        initDashboard();
+        return;
+      }
       attachAuthListeners();
       if (isAuthenticated()) {
         initDashboard();

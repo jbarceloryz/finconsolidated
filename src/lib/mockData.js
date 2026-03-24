@@ -19,6 +19,7 @@ export function getDemoCashflowInvoices() {
   const statuses = ['PAID', 'PAID', 'PAID', 'UPCOMING', 'UPCOMING', 'OVERDUE', 'UPCOMING', 'PAID']
 
   const invoices = []
+  const now = new Date()
   // Generate ~40 invoices spread across previous, current, and next month
   for (let offset = -1; offset <= 1; offset++) {
     const mDate = new Date(Y, M + offset, 1)
@@ -28,14 +29,22 @@ export function getDemoCashflowInvoices() {
 
     for (let i = 0; i < 14; i++) {
       const clientIdx = (i + offset + 10) % clients.length
-      const statusIdx = (i + offset + 10) % statuses.length
       const day = Math.min((i * 2) + 1, daysInMonth)
+      const dueDate = d(mY, mM + 1, day)
       const amount = Math.round((3000 + Math.sin(i * 1.7 + offset) * 2500 + i * 500) * 100) / 100
-      const status = offset < 0 ? 'PAID' : statuses[statusIdx]
+      const isPast = dueDate < now
+
+      // Past invoices are either PAID or OVERDUE, future ones are UPCOMING
+      let status
+      if (isPast) {
+        status = i % 4 === 0 ? 'OVERDUE' : 'PAID'
+      } else {
+        status = 'UPCOMING'
+      }
 
       invoices.push({
         client: clients[clientIdx],
-        dueDate: d(mY, mM + 1, day),
+        dueDate,
         amount: Math.abs(amount),
         originalAmount: amount,
         status,
