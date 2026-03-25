@@ -9,6 +9,7 @@ const CashflowDashboard = React.lazy(() => import('./pages/CashflowDashboard'))
 const NetIncomeDashboard = React.lazy(() => import('./pages/NetIncomeDashboard'))
 const GPAnalysisDashboard = React.lazy(() => import('./pages/GPAnalysisDashboard'))
 const APDashboard = React.lazy(() => import('./pages/APDashboard'))
+const AnalyticsDashboard = React.lazy(() => import('./pages/AnalyticsDashboard'))
 
 function PageLoader() {
   return (
@@ -73,6 +74,7 @@ const navItems = [
   { path: '/net-income', label: 'Net Income' },
   { path: '/gp-analysis', label: 'GP Analysis' },
   { path: '/accounts-payable', label: 'AP' },
+  { path: '/analytics', label: 'Analytics' },
 ]
 
 function PageHeader() {
@@ -233,6 +235,7 @@ function App() {
                 <Route path="/net-income" element={<NetIncomeDashboard />} />
                 <Route path="/gp-analysis" element={<GPAnalysisDashboard />} />
                 <Route path="/accounts-payable" element={<APDashboard />} />
+                <Route path="/analytics" element={<AnalyticsDashboard />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>

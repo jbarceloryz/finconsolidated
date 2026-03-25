@@ -7,6 +7,7 @@ export default function Home() {
     { path: '/net-income', name: 'Net Income', description: 'Operating income by period, P&L by entity, HC revenue vs projected.' },
     { path: '/gp-analysis', name: 'GP Analysis', description: 'Talent pool net margin gain/loss, onboarded vs offboarded.' },
     { path: '/accounts-payable', name: 'AP', description: 'Accounts payable tracker — record invoices, track aging, and manage payments by company.' },
+    { path: '/analytics', name: 'Analytics', description: 'Cross-dashboard insights — client revenue, overdue aging, contractor margins, churn, and variance analysis.' },
   ]
 
   return (
