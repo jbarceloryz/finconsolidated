@@ -198,6 +198,7 @@ function NetIncomeContent({
 }) {
   const [selectedCompanies, setSelectedCompanies] = useState(['CONSOLIDATED'])
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [periodFilter, setPeriodFilter] = useState('yearly') // 'yearly' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
   const dropdownRef = useRef(null)
 
   useEffect(() => {
@@ -229,23 +230,44 @@ function NetIncomeContent({
           ? `Operating Income — ${selectedCompanies[0]}`
           : `Operating Income — ${selectedCompanies.length} entities`
 
+  const monthsYear = useMemo(() => months.filter((m) => String(m).endsWith('-' + yearSuffix)), [months, yearSuffix])
+
+  // Quarter filtering helpers
+  const QUARTER_MONTHS = { Q1: [0, 1, 2], Q2: [3, 4, 5], Q3: [6, 7, 8], Q4: [9, 10, 11] }
+  const filterMonthsByPeriod = useMemo(() => {
+    if (periodFilter === 'yearly') return monthsYear
+    const qMonthIndices = QUARTER_MONTHS[periodFilter] || []
+    return monthsYear.filter((m) => {
+      const name = String(m).replace(/-\d{2}$/, '')
+      const idx = MONTH_NAMES_FULL.indexOf(name)
+      return qMonthIndices.includes(idx)
+    })
+  }, [monthsYear, periodFilter])
+
   const tablaConsolidado2026 = useMemo(() => {
     const cols = TABLE_COLUMNS.filter((col) => metricsByCompany[col.key])
+    // Get indices of the filtered months within the full monthsYear array
+    const filteredSet = new Set(filterMonthsByPeriod)
+    const indices = monthsYear.map((m, i) => filteredSet.has(m) ? i : -1).filter((i) => i >= 0)
+
     return TABLE_ROWS.map((row) => {
       const cells = { metric: row.label }
       cols.forEach((col) => {
         const m = metricsByCompany[col.key]
-        cells[col.key] = m && m[row.key] ? sumAll(m[row.key]) : 0
+        if (!m || !m[row.key]) {
+          cells[col.key] = 0
+        } else {
+          cells[col.key] = indices.reduce((sum, i) => sum + (m[row.key][i] !== undefined ? Number(m[row.key][i]) : 0), 0)
+        }
       })
       return cells
     })
-  }, [metricsByCompany, months, TABLE_COLUMNS, TABLE_ROWS, sumAll])
+  }, [metricsByCompany, monthsYear, filterMonthsByPeriod, TABLE_COLUMNS, TABLE_ROWS])
 
-  const monthsYear = useMemo(() => months.filter((m) => String(m).endsWith('-' + yearSuffix)), [months, yearSuffix])
   const _hcKey = _IS_DEMO ? (TABLE_COLUMNS.find(c => c.key !== 'CONSOLIDATED') || {}).key : 'Ryz Labs HC LLC'
   const _secondKey = _IS_DEMO ? (TABLE_COLUMNS.filter(c => c.key !== 'CONSOLIDATED')[1] || {}).key : 'Offsiteio Inc'
 
-  const hcProjectedVsActual = useMemo(() => {
+  const hcProjectedVsActualAll = useMemo(() => {
     const hc = metricsByCompany[_hcKey]
     if (!hc || !hc.totalIncome || monthsYear.length === 0) return []
     const actual = hc.totalIncome
@@ -258,13 +280,23 @@ function NetIncomeContent({
     })
   }, [metricsByCompany, monthsYear, hcProjectedSales, varianceVsProjected])
 
+  const hcProjectedVsActual = useMemo(() => {
+    if (periodFilter === 'yearly') return hcProjectedVsActualAll
+    const filteredLabels = new Set(filterMonthsByPeriod)
+    return hcProjectedVsActualAll.filter((row) => filteredLabels.has(row.month))
+  }, [hcProjectedVsActualAll, periodFilter, filterMonthsByPeriod])
+
   const currentMonthIndex = useMemo(() => deriveCurrentMonthIndex(monthsYear), [monthsYear])
   const previousMonthLabel = monthsYear[currentMonthIndex - 1] || monthsYear[0]
   const currentMonthLabel = monthsYear[currentMonthIndex] || monthsYear[monthsYear.length - 1]
   const nextMonthLabel = monthsYear[currentMonthIndex + 1] || monthsYear[Math.min(currentMonthIndex + 1, monthsYear.length - 1)]
   const beforePreviousLabel = monthsYear[currentMonthIndex - 2] || monthsYear[0]
 
-  const hcProjectedThroughCurrentMonth = useMemo(() => hcProjectedVsActual.slice(0, currentMonthIndex + 1), [hcProjectedVsActual, currentMonthIndex])
+  const hcProjectedThroughCurrentMonth = useMemo(() => {
+    // For quarterly view, show all months in that quarter; for yearly, up to current month
+    if (periodFilter !== 'yearly') return hcProjectedVsActual
+    return hcProjectedVsActual.slice(0, currentMonthIndex + 1)
+  }, [hcProjectedVsActual, currentMonthIndex, periodFilter])
   const hcProjectedYtdThroughCurrentMonth = useMemo(() => {
     const rows = hcProjectedThroughCurrentMonth
     const totalProj = rows.reduce((s, r) => s + r.projected, 0)
@@ -328,7 +360,7 @@ function NetIncomeContent({
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
           <label htmlFor="entity-dropdown" className="text-slate-400 text-sm font-medium">Entity</label>
           <div className="relative" ref={dropdownRef}>
             <button
@@ -362,6 +394,26 @@ function NetIncomeContent({
                 })}
               </div>
             )}
+          </div>
+
+          <div className="h-6 w-px bg-slate-700 hidden sm:block" />
+
+          <label className="text-slate-400 text-sm font-medium">Period</label>
+          <div className="flex rounded-lg border border-slate-700 overflow-hidden">
+            {['yearly', 'Q1', 'Q2', 'Q3', 'Q4'].map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPeriodFilter(p)}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  periodFilter === p
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    : 'bg-slate-800/80 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200'
+                } ${p !== 'yearly' ? 'border-l border-slate-700' : ''}`}
+              >
+                {p === 'yearly' ? 'Year' : p}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -444,18 +496,18 @@ function NetIncomeContent({
         {hcProjectedVsActual.length > 0 && hcProjectedSales.length > 0 && (
           <div className="mt-8 rounded-xl border border-slate-600 bg-slate-800/40 p-5 shadow-lg">
             <h2 className="font-bold text-lg text-slate-100">HC Revenue vs Projected</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-300">HC revenue growth forecast — actual vs projected (through current month)</p>
+            <p className="mt-1 text-sm font-semibold text-slate-300">HC revenue growth forecast — actual vs projected {periodFilter === 'yearly' ? '(through current month)' : `(${periodFilter} 20${yearSuffix})`}</p>
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div className="rounded-lg bg-slate-700/50 border border-slate-600 p-4">
-                <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">YTD Projected</p>
+                <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">{periodFilter === 'yearly' ? 'YTD' : periodFilter} Projected</p>
                 <p className="text-xl font-semibold text-slate-100 mt-0.5">{formatCurrency(hcProjectedYtdThroughCurrentMonth.projected)}</p>
               </div>
               <div className="rounded-lg bg-slate-700/50 border border-slate-600 p-4">
-                <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">YTD Actual</p>
+                <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">{periodFilter === 'yearly' ? 'YTD' : periodFilter} Actual</p>
                 <p className="text-xl font-semibold text-slate-100 mt-0.5">{formatCurrency(hcProjectedYtdThroughCurrentMonth.actual)}</p>
               </div>
               <div className="rounded-lg bg-slate-700/50 border border-slate-600 p-4">
-                <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">YTD Variance vs Projected</p>
+                <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">{periodFilter === 'yearly' ? 'YTD' : periodFilter} Variance vs Projected</p>
                 <p className={`text-xl font-semibold mt-0.5 ${hcProjectedYtdThroughCurrentMonth.variance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {formatCurrency(hcProjectedYtdThroughCurrentMonth.variance)} ({hcProjectedYtdThroughCurrentMonth.variancePct >= 0 ? '+' : ''}{hcProjectedYtdThroughCurrentMonth.variancePct.toFixed(1)}%)
                 </p>
@@ -549,7 +601,7 @@ function NetIncomeContent({
 
         <div className="mt-8 rounded-xl border border-slate-600 bg-slate-800/40 p-5 shadow-lg">
           <h2 className="font-bold text-lg text-slate-100">Financial Dashboard</h2>
-          <p className="mt-1 text-sm font-semibold text-slate-300">P&L by entity — 20{yearSuffix} (consolidated, full year total)</p>
+          <p className="mt-1 text-sm font-semibold text-slate-300">P&L by entity — {periodFilter === 'yearly' ? `20${yearSuffix} (consolidated, full year total)` : `${periodFilter} 20${yearSuffix}`}</p>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
