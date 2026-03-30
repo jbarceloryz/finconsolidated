@@ -15,11 +15,6 @@ function fmtDate(d) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
-function fmtMonth(iso) {
-  if (!iso) return '—'
-  const dt = new Date(iso)
-  return dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-}
 
 // ── Reusable components ──────────────────────────────────────────────────────
 function SectionCard({ title, subtitle, children, accent = 'emerald' }) {
@@ -157,15 +152,14 @@ export default function AnalyticsDashboard() {
     )
   }
 
-  const { clientRevenue, paymentTerms, contractorMargin, hcVariance, contractorChurn, revisionRates, overdueAging } = data
+  const { clientRevenue, paymentTerms, overdueAging } = data
   const maxBilled = Math.max(...clientRevenue.map((r) => r.total_billed || 0), 1)
-  const maxMarginPct = Math.max(...contractorMargin.map((r) => r.margin_pct || 0), 1)
 
   // KPI summaries
   const totalAR = clientRevenue.reduce((s, r) => s + (r.total_billed || 0), 0)
   const totalOutstanding = paymentTerms.reduce((s, r) => s + (r.outstanding_balance || 0), 0)
-  const avgMargin = contractorMargin.length > 0 ? contractorMargin.reduce((s, r) => s + (r.margin_pct || 0), 0) / contractorMargin.length : 0
   const totalOverdue = overdueAging.reduce((s, r) => s + (r.amount || 0), 0)
+  const activeClients = clientRevenue.length
 
   return (
     <div className="min-h-full bg-slate-950 p-8 font-sans">
@@ -191,14 +185,14 @@ export default function AnalyticsDashboard() {
         <KPIRow items={[
           { label: 'Total Billed (AR)', value: fmtCurrency(totalAR), color: 'text-emerald-400' },
           { label: 'Outstanding Balance', value: fmtCurrency(totalOutstanding), color: 'text-amber-400' },
-          { label: 'Avg Contractor Margin', value: `${fmtNum(avgMargin)}%`, color: 'text-sky-400' },
+          { label: 'Active Clients', value: String(activeClients), color: 'text-sky-400' },
           { label: 'Total Overdue', value: fmtCurrency(totalOverdue), color: 'text-rose-400' },
         ]} />
 
         <div className="space-y-5">
 
           {/* ─── 1. Client Revenue Breakdown ─────────────────────────── */}
-          <SectionCard title="Client Revenue Breakdown" subtitle="All-time billing by client" accent="emerald">
+          <SectionCard title="Client Revenue Breakdown" subtitle="Active clients (billed in the last 2 months)" accent="emerald">
             <DataTable
               columns={[
                 { key: 'client', label: 'Client' },
@@ -248,81 +242,6 @@ export default function AnalyticsDashboard() {
                 },
               ]}
               rows={paymentTerms}
-            />
-          </SectionCard>
-
-          {/* ─── 6. Invoice Revision Rates ────────────────────────────── */}
-          <SectionCard title="Invoice Revision Rates" subtitle="Clients with highest revision frequency" accent="amber">
-            <DataTable
-              columns={[
-                { key: 'client', label: 'Client' },
-                { key: 'total_invoices', label: 'Total Invoices', align: 'right' },
-                { key: 'revised_count', label: 'Revised', align: 'right' },
-                { key: 'revision_rate_pct', label: 'Revision Rate', align: 'right',
-                  className: (row) => row.revision_rate_pct > 20 ? 'text-rose-400 font-semibold' : 'text-slate-300',
-                  render: (v) => `${fmtNum(v)}%`
-                },
-              ]}
-              rows={revisionRates}
-              emptyMessage="No revision data available"
-            />
-          </SectionCard>
-
-          {/* ─── 3. Contractor Margin Analysis ────────────────────────── */}
-          <SectionCard title="Contractor Margin Analysis" subtitle="Active contractors ranked by margin percentage" accent="sky">
-            <DataTable
-              columns={[
-                { key: 'candidate_name', label: 'Name' },
-                { key: 'role', label: 'Role' },
-                { key: 'company', label: 'Company' },
-                { key: 'rate', label: 'Rate', align: 'right', render: (v) => fmtCurrency(v) },
-                { key: 'actual_cost', label: 'Cost', align: 'right', render: (v) => fmtCurrency(v) },
-                { key: 'net_margin', label: 'Margin', align: 'right',
-                  className: (row) => row.net_margin > 0 ? 'text-emerald-400' : 'text-rose-400',
-                  render: (v) => fmtCurrency(v)
-                },
-                { key: 'margin_pct', label: 'Margin %', align: 'right', render: (v) => `${fmtNum(v)}%` },
-                { key: '_bar', label: '', render: (_, row) => <InlineBar value={row.margin_pct} max={maxMarginPct} color="bg-sky-500" /> },
-              ]}
-              rows={contractorMargin}
-              emptyMessage="No active contractors with margin data"
-            />
-          </SectionCard>
-
-          {/* ─── 4. HC Actual vs Projected ────────────────────────────── */}
-          <SectionCard title="HC: Actual vs Projected" subtitle="Monthly variance between actual and projected revenue" accent="sky">
-            <DataTable
-              columns={[
-                { key: 'period_label', label: 'Period' },
-                { key: 'actual', label: 'Actual', align: 'right', render: (v) => fmtCurrency(v) },
-                { key: 'projected', label: 'Projected', align: 'right', render: (v) => fmtCurrency(v) },
-                { key: 'computed_variance', label: 'Variance', align: 'right',
-                  className: (row) => row.computed_variance >= 0 ? 'text-emerald-400' : 'text-rose-400',
-                  render: (v) => fmtCurrency(v)
-                },
-                { key: 'pct_off', label: '% Off', align: 'right',
-                  className: (row) => row.pct_off >= 0 ? 'text-emerald-400' : 'text-rose-400',
-                  render: (v) => v != null ? `${v > 0 ? '+' : ''}${fmtNum(v)}%` : '—'
-                },
-              ]}
-              rows={hcVariance}
-            />
-          </SectionCard>
-
-          {/* ─── 5. Contractor Churn ──────────────────────────────────── */}
-          <SectionCard title="Contractor Churn" subtitle="Monthly offboarding activity and revenue impact" accent="rose">
-            <DataTable
-              columns={[
-                { key: 'churn_month', label: 'Month', render: (v) => fmtMonth(v) },
-                { key: 'contractors_churned', label: 'Churned', align: 'right' },
-                { key: 'monthly_rate_lost', label: 'Rate Lost', align: 'right',
-                  className: () => 'text-rose-400',
-                  render: (v) => fmtCurrency(v)
-                },
-                { key: 'avg_tenure_days', label: 'Avg Tenure', align: 'right', render: (v) => v ? `${fmtNum(v, 0)} days` : '—' },
-              ]}
-              rows={contractorChurn}
-              emptyMessage="No churn data available"
             />
           </SectionCard>
 
