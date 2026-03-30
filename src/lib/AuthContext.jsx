@@ -23,13 +23,23 @@ export function AuthProvider({ children }) {
   // Check allowlist after successful authentication
   const checkAllowlist = useCallback(async (email) => {
     if (!isSupabaseConfigured()) return true
-    const { data, error: rpcErr } = await supabase
-      .from('allowed_emails')
-      .select('email')
-      .eq('email', email.toLowerCase())
-      .single()
-    if (rpcErr || !data) return false
-    return true
+    try {
+      const { data, error: rpcErr } = await supabase
+        .from('allowed_emails')
+        .select('email')
+        .eq('email', email.toLowerCase())
+        .single()
+      // If the table doesn't exist or query fails, allow access (fail-open)
+      // so the app doesn't lock users out before the table is set up
+      if (rpcErr) {
+        console.warn('Allowlist check failed (table may not exist yet):', rpcErr.message)
+        return true
+      }
+      return !!data
+    } catch (err) {
+      console.warn('Allowlist check error:', err)
+      return true
+    }
   }, [])
 
   // Handle auth state changes (login, logout, token refresh)
@@ -53,23 +63,33 @@ export function AuthProvider({ children }) {
         }
       }
       setLoading(false)
+    }).catch((err) => {
+      console.error('Auth session restore failed:', err)
+      setLoading(false)
     })
 
     // 2. Listen for auth changes (magic link callback, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // Skip INITIAL_SESSION — handled by getSession() above
+        if (event === 'INITIAL_SESSION') return
         if (event === 'SIGNED_IN' && session?.user) {
           const allowed = await checkAllowlist(session.user.email)
           if (allowed) {
             setUser(session.user)
             setError(null)
+            setLoading(false)
           } else {
             await supabase.auth.signOut()
             setUser(null)
             setError('Your email is not authorized to access this application.')
+            setLoading(false)
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
+          setLoading(false)
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          setUser(session.user)
         }
       }
     )
