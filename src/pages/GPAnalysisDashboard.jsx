@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { IS_DEMO } from '../lib/DataCacheContext'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 /** GP Analysis runs in an iframe. In dev, Vite serves it from the "GP Analysis" folder at /gp-analysis/. */
 const GP_IFRAME_SRC = `/gp-analysis/index.html${IS_DEMO ? '?demo=true' : ''}`
@@ -7,21 +8,35 @@ const GP_IFRAME_SRC = `/gp-analysis/index.html${IS_DEMO ? '?demo=true' : ''}`
 export default function GPAnalysisDashboard() {
   const iframeRef = useRef(null)
 
-  // When the shell is already unlocked, tell the iframe so it can show the dashboard without asking for password again.
+  // Send the Supabase session token to the iframe so it can authenticate without a separate password.
   useEffect(() => {
-    const isUnlocked = sessionStorage.getItem('finconsolidated-auth') === '1'
-    if (!isUnlocked || !iframeRef.current) return
+    if (!iframeRef.current) return
     const iframe = iframeRef.current
-    const onLoad = () => {
+
+    const sendSession = async () => {
       try {
-        iframe.contentWindow?.postMessage(
-          { type: 'finconsolidated-auth', unlocked: true },
-          new URL(GP_IFRAME_SRC, window.location.origin).origin
-        )
+        if (IS_DEMO) {
+          // Demo mode — just tell iframe it's unlocked
+          iframe.contentWindow?.postMessage(
+            { type: 'finconsolidated-auth', unlocked: true },
+            new URL(GP_IFRAME_SRC, window.location.origin).origin
+          )
+          return
+        }
+        if (!isSupabaseConfigured()) return
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          iframe.contentWindow?.postMessage(
+            { type: 'finconsolidated-auth', unlocked: true, accessToken: session.access_token, refreshToken: session.refresh_token },
+            new URL(GP_IFRAME_SRC, window.location.origin).origin
+          )
+        }
       } catch (_) {}
     }
+
+    const onLoad = () => sendSession()
     iframe.addEventListener('load', onLoad)
-    if (iframe.contentWindow) onLoad()
+    if (iframe.contentWindow) sendSession()
     return () => iframe.removeEventListener('load', onLoad)
   }, [])
 
