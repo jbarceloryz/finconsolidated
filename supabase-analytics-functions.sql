@@ -65,7 +65,7 @@ RETURNS TABLE(
     due_date,
     (CURRENT_DATE - due_date)::integer AS days_overdue
   FROM cashflow_invoices
-  WHERE status = 'SENT'
+  WHERE status NOT IN ('PAID', 'VOID')
     AND due_date < CURRENT_DATE
   ORDER BY days_overdue DESC;
 $$;
