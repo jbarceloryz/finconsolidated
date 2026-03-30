@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from './supabase'
 
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
@@ -19,71 +19,68 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(IS_DEMO ? DEMO_USER : null)
   const [loading, setLoading] = useState(!IS_DEMO)
   const [error, setError] = useState(null)
+  const resolved = useRef(false)
 
-  // Check allowlist after successful authentication
+  // Mark loading as done (only once)
+  const finishLoading = useCallback((sessionUser, errorMsg) => {
+    if (resolved.current) return
+    resolved.current = true
+    if (sessionUser) setUser(sessionUser)
+    if (errorMsg) setError(errorMsg)
+    setLoading(false)
+  }, [])
+
+  // Check allowlist — fail-open if table missing or query errors
   const checkAllowlist = useCallback(async (email) => {
     if (!isSupabaseConfigured()) return true
     try {
-      const { data, error: rpcErr } = await supabase
+      const { data, error: qErr } = await supabase
         .from('allowed_emails')
         .select('email')
         .eq('email', email.toLowerCase())
         .single()
-      // If the table doesn't exist or query fails, allow access (fail-open)
-      // so the app doesn't lock users out before the table is set up
-      if (rpcErr) {
-        console.warn('Allowlist check failed (table may not exist yet):', rpcErr.message)
-        return true
+      if (qErr) {
+        console.warn('Allowlist check failed (table may not exist yet):', qErr.message)
+        return true // fail-open
       }
       return !!data
     } catch (err) {
       console.warn('Allowlist check error:', err)
-      return true
+      return true // fail-open
     }
   }, [])
 
-  // Handle auth state changes (login, logout, token refresh)
   useEffect(() => {
     if (IS_DEMO) return
-
     if (!isSupabaseConfigured()) {
       setLoading(false)
       return
     }
 
-    // 1. Restore existing session on mount
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const allowed = await checkAllowlist(session.user.email)
-        if (allowed) {
-          setUser(session.user)
-        } else {
-          await supabase.auth.signOut()
-          setError('Your email is not authorized to access this application.')
-        }
+    // Hard timeout — never stay on loading screen forever
+    const timeout = setTimeout(() => {
+      if (!resolved.current) {
+        console.warn('Auth loading timeout — forcing completion')
+        finishLoading(null, null)
       }
-      setLoading(false)
-    }).catch((err) => {
-      console.error('Auth session restore failed:', err)
-      setLoading(false)
-    })
+    }, 5000)
 
-    // 2. Listen for auth changes (magic link callback, sign out, etc.)
+    // Use onAuthStateChange as the single source of truth.
+    // INITIAL_SESSION fires immediately with the current session (or null).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Skip INITIAL_SESSION — handled by getSession() above
-        if (event === 'INITIAL_SESSION') return
-        if (event === 'SIGNED_IN' && session?.user) {
-          const allowed = await checkAllowlist(session.user.email)
-          if (allowed) {
-            setUser(session.user)
-            setError(null)
-            setLoading(false)
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+          if (session?.user) {
+            const allowed = await checkAllowlist(session.user.email)
+            if (allowed) {
+              finishLoading(session.user, null)
+            } else {
+              await supabase.auth.signOut()
+              finishLoading(null, 'Your email is not authorized to access this application.')
+            }
           } else {
-            await supabase.auth.signOut()
-            setUser(null)
-            setError('Your email is not authorized to access this application.')
-            setLoading(false)
+            // No session — show login
+            finishLoading(null, null)
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
@@ -94,8 +91,11 @@ export function AuthProvider({ children }) {
       }
     )
 
-    return () => subscription.unsubscribe()
-  }, [checkAllowlist])
+    return () => {
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
+  }, [checkAllowlist, finishLoading])
 
   const signOut = useCallback(async () => {
     if (IS_DEMO) return
