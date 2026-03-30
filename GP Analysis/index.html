@@ -1194,6 +1194,7 @@
 
     window.addEventListener('message', async function (event) {
       if (event.data && event.data.type === 'finconsolidated-auth' && event.data.unlocked === true) {
+        _parentAuthReceived = true;
         try {
           // If parent sent a Supabase session token, set it on our client
           if (event.data.accessToken && event.data.refreshToken && _sbClient) {
@@ -1208,6 +1209,8 @@
       }
     });
 
+    let _parentAuthReceived = false;
+
     function init() {
       // In demo mode, skip auth entirely
       if (_IS_DEMO) {
@@ -1217,6 +1220,18 @@
       attachAuthListeners();
       if (isAuthenticated()) {
         initDashboard();
+        return;
+      }
+      // If running inside an iframe, wait for the parent to send auth via postMessage
+      // before showing the password gate. Give it a short delay.
+      if (window.parent !== window) {
+        setTimeout(function () {
+          if (!_parentAuthReceived && !isAuthenticated()) {
+            showAuthGate();
+            const input = document.getElementById('authPassword');
+            if (input) input.focus();
+          }
+        }, 600);
       } else {
         showAuthGate();
         const input = document.getElementById('authPassword');
