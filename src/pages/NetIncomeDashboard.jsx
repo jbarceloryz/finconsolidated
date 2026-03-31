@@ -105,8 +105,12 @@ export default function NetIncomeDashboard() {
           setIsLoading(false)
           return
         }
-        return fetch('/net-income-data.csv', { cache: 'no-store' })
+        // CSV fallback with its own 10-second timeout
+        const controller = new AbortController()
+        const tid = setTimeout(() => controller.abort(), 10_000)
+        return fetch('/net-income-data.csv', { cache: 'no-store', signal: controller.signal })
           .then((r) => {
+            clearTimeout(tid)
             if (!r.ok) throw new Error('Failed to load Net Income data')
             return r.text()
           })

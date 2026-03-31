@@ -20,6 +20,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(!IS_DEMO)
   const [error, setError] = useState(null)
   const resolved = useRef(false)
+  const pendingUser = useRef(null) // Track session user while allowlist check runs
 
   // Mark loading as done (only once)
   const finishLoading = useCallback((sessionUser, errorMsg) => {
@@ -57,11 +58,12 @@ export function AuthProvider({ children }) {
       return
     }
 
-    // Hard timeout — never stay on loading screen forever
+    // Hard timeout — never stay on loading screen forever.
+    // If we have a pending user (allowlist check is slow), let them in (fail-open).
     const timeout = setTimeout(() => {
       if (!resolved.current) {
         console.warn('Auth loading timeout — forcing completion')
-        finishLoading(null, null)
+        finishLoading(pendingUser.current, null)
       }
     }, 5000)
 
@@ -71,10 +73,13 @@ export function AuthProvider({ children }) {
       async (event, session) => {
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
           if (session?.user) {
+            // Store user so the hard timeout can use it as a fallback
+            pendingUser.current = session.user
             const allowed = await checkAllowlist(session.user.email)
             if (allowed) {
               finishLoading(session.user, null)
             } else {
+              pendingUser.current = null
               await supabase.auth.signOut()
               finishLoading(null, 'Your email is not authorized to access this application.')
             }
