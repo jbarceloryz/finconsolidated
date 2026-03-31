@@ -1192,35 +1192,18 @@
       if (lastCsvText) run(lastCsvText);
     }
 
-    window.addEventListener('message', async function (event) {
+    window.addEventListener('message', function (event) {
       if (event.data && event.data.type === 'finconsolidated-auth' && event.data.unlocked === true) {
-        _parentAuthReceived = true;
         try {
-          // If parent sent a Supabase session token, set it on our client
-          if (event.data.accessToken && event.data.refreshToken && _sbClient) {
-            await _sbClient.auth.setSession({
-              access_token: event.data.accessToken,
-              refresh_token: event.data.refreshToken,
-            });
-          }
           window.sessionStorage.setItem(AUTH_STORAGE_KEY, 'ok');
           initDashboard();
         } catch (_) {}
       }
     });
 
-    let _parentAuthReceived = false;
-
     function init() {
       // In demo mode, skip auth entirely
       if (_IS_DEMO) {
-        initDashboard();
-        return;
-      }
-      // If running inside an iframe, the parent app already authenticated the user.
-      // Skip the password gate entirely and go straight to the dashboard.
-      if (window.parent !== window) {
-        window.sessionStorage.setItem(AUTH_STORAGE_KEY, 'ok');
         initDashboard();
         return;
       }

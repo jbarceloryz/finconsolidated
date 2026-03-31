@@ -32,18 +32,13 @@ export default function CashflowDashboard() {
           setIsLoading(false)
           return
         }
-        // CSV fallback with its own 10-second timeout
-        const controller = new AbortController()
-        const tid = setTimeout(() => controller.abort(), 10_000)
         const timestamp = new Date().getTime()
         const r = Math.random().toString(36).slice(2)
         return fetch(`/db.csv?t=${timestamp}&r=${r}`, {
           cache: 'no-store',
-          signal: controller.signal,
           headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
         })
           .then((res) => {
-            clearTimeout(tid)
             if (!res.ok) throw new Error('Failed to load CSV')
             return res.text()
           })
@@ -56,7 +51,7 @@ export default function CashflowDashboard() {
       .catch((err) => {
         console.error('Error loading Cashflow data:', err)
         setIsLoading(false)
-        setLoadError(err.name === 'AbortError' ? 'Request timed out. Try again.' : (err.message || 'Failed to load data'))
+        setLoadError(err.message || 'Failed to load data')
       })
   }, [fetchCashflow, fetchAPCashflow])
 

@@ -3,8 +3,6 @@ import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import { ThemeProvider, useTheme } from './ThemeContext'
 import { DataCacheProvider, IS_DEMO } from './lib/DataCacheContext'
-import { AuthProvider, useAuth } from './lib/AuthContext'
-import { supabase, isSupabaseConfigured } from './lib/supabase'
 
 // Lazy-load heavy dashboard pages — only downloaded when the user navigates to them
 const CashflowDashboard = React.lazy(() => import('./pages/CashflowDashboard'))
@@ -67,6 +65,9 @@ function ThemeToggle() {
   )
 }
 
+const AUTH_KEY = 'finconsolidated-auth'
+const PASSWORD = '!accounting123$'
+
 const navItems = [
   { path: '/', label: 'Home', end: true },
   { path: '/cashflow', label: 'Cashflow' },
@@ -94,105 +95,51 @@ function PageHeader() {
   )
 }
 
-function MagicLinkLogin() {
-  const [email, setEmail] = useState('')
-  const [status, setStatus] = useState('idle') // idle | sending | sent | error
-  const [errorMsg, setErrorMsg] = useState('')
-  const { error: authError, clearError } = useAuth()
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!email.trim()) return
-    setStatus('sending')
-    setErrorMsg('')
-    clearError()
-
-    if (!isSupabaseConfigured()) {
-      setStatus('error')
-      setErrorMsg('Supabase is not configured. Check your .env file.')
-      return
-    }
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: window.location.origin },
-    })
-
-    if (error) {
-      setStatus('error')
-      setErrorMsg(error.message)
-    } else {
-      setStatus('sent')
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8 font-sans">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900/80 p-8 shadow-2xl">
-        <h1 className="font-display text-xl font-semibold text-white mb-1">Finance Consolidated</h1>
-
-        {status === 'sent' ? (
-          <div className="mt-4">
-            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 mb-4">
-              <p className="text-emerald-400 text-sm font-medium">Check your email</p>
-              <p className="text-slate-400 text-xs mt-1">We sent a login link to <span className="text-slate-200">{email}</span>. Click it to sign in.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => { setStatus('idle'); setEmail('') }}
-              className="w-full text-sm text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              Use a different email
-            </button>
-          </div>
-        ) : (
-          <>
-            <p className="text-sm text-slate-400 mb-6">Enter your email to receive a login link.</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                autoFocus
-                autoComplete="email"
-                disabled={status === 'sending'}
-              />
-              {(errorMsg || authError) && (
-                <p className="text-sm text-rose-400">{errorMsg || authError}</p>
-              )}
-              <button
-                type="submit"
-                disabled={status === 'sending' || !email.trim()}
-                className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {status === 'sending' ? 'Sending...' : 'Send Magic Link'}
-              </button>
-            </form>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function App() {
-  const { user, loading, signOut } = useAuth()
+  const [unlocked, setUnlocked] = useState(() => IS_DEMO || sessionStorage.getItem(AUTH_KEY) === '1')
+  const [passwordInput, setPasswordInput] = useState('')
+  const [passwordError, setPasswordError] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // Loading state while checking session
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="animate-pulse text-slate-500 text-sm">Loading...</div>
-      </div>
-    )
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault()
+    setPasswordError('')
+    if (passwordInput === PASSWORD) {
+      sessionStorage.setItem(AUTH_KEY, '1')
+      setUnlocked(true)
+      setPasswordInput('')
+    } else {
+      setPasswordError('Incorrect password')
+    }
   }
 
-  // Not authenticated — show magic link login
-  if (!user) {
-    return <MagicLinkLogin />
+  if (!unlocked) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8 font-sans">
+        <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900/80 p-8 shadow-2xl">
+          <h1 className="font-display text-xl font-semibold text-white mb-1">Finance Consolidated</h1>
+          <p className="text-sm text-slate-400 mb-6">Enter password to access dashboards.</p>
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              placeholder="Password"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              autoFocus
+              autoComplete="current-password"
+            />
+            {passwordError && <p className="text-sm text-rose-400">{passwordError}</p>}
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+            >
+              Unlock
+            </button>
+          </form>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -244,21 +191,6 @@ function App() {
             </NavLink>
           ))}
         </nav>
-        {/* User info + sign out */}
-        {!IS_DEMO && user?.email && (
-          <div className="p-2 border-t border-slate-800">
-            <div className="px-3 py-2">
-              <p className="text-xs text-slate-500 truncate" title={user.email}>{user.email}</p>
-            </div>
-            <button
-              onClick={signOut}
-              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              Sign Out
-            </button>
-          </div>
-        )}
         <ThemeToggle />
       </aside>
 
@@ -316,11 +248,9 @@ function App() {
 export default function AppWithTheme() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <DataCacheProvider>
-          <App />
-        </DataCacheProvider>
-      </AuthProvider>
+      <DataCacheProvider>
+        <App />
+      </DataCacheProvider>
     </ThemeProvider>
   )
 }
