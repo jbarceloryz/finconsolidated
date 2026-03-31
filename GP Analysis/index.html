@@ -1217,21 +1217,16 @@
         initDashboard();
         return;
       }
-      attachAuthListeners();
-      if (isAuthenticated()) {
+      // If running inside an iframe, the parent app already authenticated the user.
+      // Skip the password gate entirely and go straight to the dashboard.
+      if (window.parent !== window) {
+        window.sessionStorage.setItem(AUTH_STORAGE_KEY, 'ok');
         initDashboard();
         return;
       }
-      // If running inside an iframe, wait for the parent to send auth via postMessage
-      // before showing the password gate. Give it a short delay.
-      if (window.parent !== window) {
-        setTimeout(function () {
-          if (!_parentAuthReceived && !isAuthenticated()) {
-            showAuthGate();
-            const input = document.getElementById('authPassword');
-            if (input) input.focus();
-          }
-        }, 600);
+      attachAuthListeners();
+      if (isAuthenticated()) {
+        initDashboard();
       } else {
         showAuthGate();
         const input = document.getElementById('authPassword');
