@@ -52,20 +52,28 @@ function sumAll(arr) {
 }
 
 const MONTH_NAMES_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const MONTH_ABBR_LIST = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 function deriveCurrentMonthIndex(months) {
   const now = new Date()
-  const monthName = MONTH_NAMES_FULL[now.getMonth()]
   const yearSuffix = String(now.getFullYear()).slice(-2)
-  const label = monthName + '-' + yearSuffix
-  const idx = months.indexOf(label)
-  return idx >= 0 ? idx : Math.min(months.length - 1, 2)
+  // Try abbreviated first (e.g. 'Apr-26'), then full name (e.g. 'April-26')
+  const abbr = MONTH_ABBR_LIST[now.getMonth()] + '-' + yearSuffix
+  const full = MONTH_NAMES_FULL[now.getMonth()] + '-' + yearSuffix
+  const idx = months.indexOf(abbr)
+  if (idx >= 0) return idx
+  const idx2 = months.indexOf(full)
+  if (idx2 >= 0) return idx2
+  return Math.min(months.length - 1, 2)
 }
 
 function formatMonthTitle(label) {
   if (!label) return ''
   const [name, yr] = label.split('-')
-  return `${name} 20${yr}`
+  // Expand abbreviated month name for display (Apr → April)
+  const fullIdx = MONTH_ABBR_LIST.indexOf(name)
+  const displayName = fullIdx >= 0 ? MONTH_NAMES_FULL[fullIdx] : name
+  return `${displayName} 20${yr}`
 }
 
 function getMonthIndex(months, monthLabel) {
@@ -239,7 +247,9 @@ function NetIncomeContent({
     const qMonthIndices = QUARTER_MONTHS[periodFilter] || []
     return monthsYear.filter((m) => {
       const name = String(m).replace(/-\d{2}$/, '')
-      const idx = MONTH_NAMES_FULL.indexOf(name)
+      // Support both abbreviated (Jan) and full (January) month labels
+      let idx = MONTH_ABBR_LIST.indexOf(name)
+      if (idx < 0) idx = MONTH_NAMES_FULL.indexOf(name)
       return qMonthIndices.includes(idx)
     })
   }, [monthsYear, periodFilter])
