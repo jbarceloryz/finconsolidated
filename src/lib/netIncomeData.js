@@ -24,9 +24,9 @@ export async function fetchNetIncomeFromSupabase() {
   const hcRows = hcRes.data || []
   const varRows = varRes.data || []
 
-  const MONTH_ORDER = [
-    'January','February','March','April','May','June',
-    'July','August','September','October','November','December',
+  const MONTH_ABBR = [
+    'Jan','Feb','Mar','Apr','May','Jun',
+    'Jul','Aug','Sep','Oct','Nov','Dec',
   ]
   const periodSet = new Set()
   metrics.forEach((r) => periodSet.add(r.period_label))
@@ -34,7 +34,7 @@ export async function fetchNetIncomeFromSupabase() {
     const [aMonth, aYear] = a.split('-')
     const [bMonth, bYear] = b.split('-')
     if (aYear !== bYear) return Number(aYear) - Number(bYear)
-    return MONTH_ORDER.indexOf(aMonth) - MONTH_ORDER.indexOf(bMonth)
+    return MONTH_ABBR.indexOf(aMonth) - MONTH_ABBR.indexOf(bMonth)
   })
 
   const byCompany = {}
