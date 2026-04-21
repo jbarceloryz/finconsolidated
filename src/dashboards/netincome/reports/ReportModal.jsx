@@ -60,7 +60,28 @@ export default function ReportModal({ title, onClose, children, filename }) {
         html, body { margin: 0; padding: 0; background: #ffffff; color: #0f172a; }
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .page-break-before { break-before: page; page-break-before: always; }
-        @page { size: A4; margin: 12mm 10mm; }
+        @page { size: A4 landscape; margin: 10mm 8mm; }
+        /* Ensure wide tables fit within the printable area */
+        #report-root { width: 100%; }
+        #report-root table {
+          width: 100% !important;
+          table-layout: auto !important;
+          font-size: 8.5px !important;
+          border-collapse: collapse !important;
+        }
+        #report-root table th,
+        #report-root table td {
+          padding: 3px 4px !important;
+          white-space: nowrap;
+          word-break: keep-all;
+        }
+        /* First column (entity / line item labels) can wrap when needed */
+        #report-root table th:first-child,
+        #report-root table td:first-child {
+          white-space: normal;
+          word-break: break-word;
+        }
+        #report-root .overflow-x-auto { overflow: visible !important; }
       </style>
     </head><body><div id="report-root">${content.innerHTML}</div></body></html>`)
     doc.close()
