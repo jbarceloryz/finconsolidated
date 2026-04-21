@@ -11,6 +11,10 @@ import {
 } from 'recharts'
 import { parseFinancialCsv, getChartData } from '../dashboards/netincome/utils/parseFinancialCsv'
 import { useDataCache } from '../lib/DataCacheContext'
+import ReportModal from '../dashboards/netincome/reports/ReportModal'
+import MBRReport from '../dashboards/netincome/reports/MBRReport'
+import WBRReport from '../dashboards/netincome/reports/WBRReport'
+import { deriveCurrentMonthLabel, chronologicalMonths, formatMonthLong } from '../dashboards/netincome/reports/reportUtils'
 
 const _IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
 
@@ -100,7 +104,15 @@ export default function NetIncomeDashboard() {
   const [loadError, setLoadError] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState(null)
-  const { fetchNetIncome } = useDataCache()
+  const [invoices, setInvoices] = useState([])
+  const { fetchNetIncome, fetchCashflow } = useDataCache()
+
+  // Preload cashflow invoices so the WBR report can include overdue AR without delay.
+  useEffect(() => {
+    fetchCashflow(false).then((data) => {
+      if (Array.isArray(data)) setInvoices(data)
+    }).catch(() => {})
+  }, [fetchCashflow])
 
   const loadData = useCallback((forceRefresh = false) => {
     setIsLoading(true)
@@ -184,6 +196,7 @@ export default function NetIncomeDashboard() {
       pctChange={pctChange}
       getChartData={getChartData}
       lastUpdated={lastUpdated}
+      invoices={invoices}
     />
   )
 }
@@ -203,10 +216,12 @@ function NetIncomeContent({
   pctChange,
   getChartData,
   lastUpdated,
+  invoices,
 }) {
   const [selectedCompanies, setSelectedCompanies] = useState(['CONSOLIDATED'])
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [periodFilter, setPeriodFilter] = useState('yearly') // 'yearly' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
+  const [activeReport, setActiveReport] = useState(null) // null | 'wbr' | 'mbr'
   const dropdownRef = useRef(null)
 
   useEffect(() => {
@@ -425,6 +440,33 @@ function NetIncomeContent({
               </button>
             ))}
           </div>
+
+          <div className="flex-1 hidden md:block" />
+
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              type="button"
+              onClick={() => setActiveReport('wbr')}
+              className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 text-xs font-medium text-emerald-300"
+              title="Generate Weekly Business Review"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+              </svg>
+              Generate WBR
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveReport('mbr')}
+              className="inline-flex items-center gap-2 rounded-lg border border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 px-3 py-1.5 text-xs font-medium text-sky-300"
+              title="Generate Monthly Business Review"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              Generate MBR
+            </button>
+          </div>
         </div>
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 sm:p-6 shadow-xl">
@@ -641,6 +683,65 @@ function NetIncomeContent({
           </div>
         </div>
       </main>
+
+      {/* Report modals */}
+      {activeReport === 'wbr' && (() => {
+        const ys = yearSuffix
+        const curLbl = deriveCurrentMonthLabel(months, ys)
+        const chrono = chronologicalMonths(months, ys)
+        const curIdx = chrono.indexOf(curLbl)
+        const prevLbl = curIdx > 0 ? chrono[curIdx - 1] : chrono[0]
+        const nextLbl = curIdx >= 0 && curIdx < chrono.length - 1 ? chrono[curIdx + 1] : null
+        const reportEntities = TABLE_COLUMNS.filter((c) => metricsByCompany[c.key])
+        const hcKey = _IS_DEMO ? (TABLE_COLUMNS.find(c => c.key !== 'CONSOLIDATED') || {}).key : 'Ryz Labs HC LLC'
+        return (
+          <ReportModal
+            title={`Weekly Business Review — ${formatMonthLong(curLbl)}`}
+            onClose={() => setActiveReport(null)}
+            filename={`WBR_${curLbl}.pdf`}
+          >
+            <WBRReport
+              months={months}
+              metricsByCompany={metricsByCompany}
+              entities={reportEntities}
+              hcKey={hcKey}
+              currentMonthLabel={curLbl}
+              previousMonthLabel={prevLbl}
+              nextMonthLabel={nextLbl}
+              invoices={invoices}
+            />
+          </ReportModal>
+        )
+      })()}
+
+      {activeReport === 'mbr' && (() => {
+        const ys = yearSuffix
+        const curLbl = deriveCurrentMonthLabel(months, ys)
+        const chrono = chronologicalMonths(months, ys)
+        const curIdx = chrono.indexOf(curLbl)
+        const prevLbl = curIdx > 0 ? chrono[curIdx - 1] : chrono[0]
+        const nextLbl = curIdx >= 0 && curIdx < chrono.length - 1 ? chrono[curIdx + 1] : null
+        const reportEntities = TABLE_COLUMNS.filter((c) => metricsByCompany[c.key])
+        const hcKey = _IS_DEMO ? (TABLE_COLUMNS.find(c => c.key !== 'CONSOLIDATED') || {}).key : 'Ryz Labs HC LLC'
+        return (
+          <ReportModal
+            title={`Monthly Business Review — ${formatMonthLong(curLbl)}`}
+            onClose={() => setActiveReport(null)}
+            filename={`MBR_${curLbl}.pdf`}
+          >
+            <MBRReport
+              months={months}
+              metricsByCompany={metricsByCompany}
+              entities={reportEntities}
+              hcKey={hcKey}
+              currentMonthLabel={curLbl}
+              previousMonthLabel={prevLbl}
+              nextMonthLabel={nextLbl}
+              yearSuffix={ys}
+            />
+          </ReportModal>
+        )
+      })()}
     </div>
   )
 }
