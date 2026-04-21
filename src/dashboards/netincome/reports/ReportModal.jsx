@@ -1,37 +1,103 @@
 import React, { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 /**
  * Shared modal wrapper for WBR and MBR reports.
- * - Light theme for a clean print look
- * - "Download PDF" triggers window.print() with a print-only stylesheet that hides everything except the report
+ * - Rendered via a portal to document.body
+ * - "Download PDF" clones the report HTML into an isolated iframe and prints that.
+ *   This avoids any CSS conflicts / clipping from the parent app layout.
  */
 export default function ReportModal({ title, onClose, children, filename }) {
   const contentRef = useRef(null)
 
   useEffect(() => {
-    const prev = document.body.style.overflow
+    const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => {
-      document.body.style.overflow = prev
+      document.body.style.overflow = prevOverflow
       window.removeEventListener('keydown', onKey)
     }
   }, [onClose])
 
   const handlePrint = () => {
-    // Temporarily set the document title so the PDF filename matches
-    const previousTitle = document.title
-    if (filename) document.title = filename
-    window.print()
-    setTimeout(() => { document.title = previousTitle }, 500)
+    const content = contentRef.current
+    if (!content) return
+
+    // Collect parent stylesheets so the cloned report renders identically.
+    // For cross-origin sheets we can't read cssRules — fall back to <link> tags.
+    const styleFragments = []
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        const rules = sheet.cssRules
+        if (rules) {
+          styleFragments.push(Array.from(rules).map((r) => r.cssText).join('\n'))
+        }
+      } catch (_e) {
+        if (sheet.href) {
+          styleFragments.push(`@import url("${sheet.href}");`)
+        }
+      }
+    }
+
+    const iframe = document.createElement('iframe')
+    iframe.setAttribute('aria-hidden', 'true')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.style.opacity = '0'
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentDocument || iframe.contentWindow.document
+    doc.open()
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${(filename || title || 'Report').replace(/</g, '&lt;')}</title>
+      <style>${styleFragments.join('\n')}</style>
+      <style>
+        html, body { margin: 0; padding: 0; background: #ffffff; color: #0f172a; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .page-break-before { break-before: page; page-break-before: always; }
+        @page { size: A4; margin: 12mm 10mm; }
+      </style>
+    </head><body><div id="report-root">${content.innerHTML}</div></body></html>`)
+    doc.close()
+
+    const cleanup = () => {
+      setTimeout(() => {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe)
+      }, 300)
+    }
+
+    const triggerPrint = () => {
+      try {
+        iframe.contentWindow.focus()
+        iframe.contentWindow.print()
+      } catch (err) {
+        console.warn('Print failed:', err)
+      }
+      cleanup()
+    }
+
+    // Give the iframe a tick to lay out before printing
+    if (iframe.contentDocument.readyState === 'complete') {
+      setTimeout(triggerPrint, 100)
+    } else {
+      iframe.onload = () => setTimeout(triggerPrint, 100)
+    }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto p-4 print:static print:bg-white print:p-0 print:block" role="dialog" aria-modal="true">
-      <div className="w-full max-w-5xl my-6 print:m-0 print:max-w-none print:w-full">
-        {/* Modal toolbar (hidden in print) */}
-        <div className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-t-xl px-5 py-3 print:hidden">
+  const modal = (
+    <div
+      className="fixed inset-0 z-[100] flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto p-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="w-full max-w-5xl my-6">
+        {/* Modal toolbar */}
+        <div className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-t-xl px-5 py-3">
           <div>
             <h2 className="font-semibold text-white text-lg">{title}</h2>
             <p className="text-slate-400 text-xs">Preview below — click Download PDF to save</p>
@@ -57,25 +123,17 @@ export default function ReportModal({ title, onClose, children, filename }) {
           </div>
         </div>
 
-        {/* Report content — this is what gets printed */}
+        {/* Report content — this is what gets cloned to the print iframe */}
         <div
           ref={contentRef}
           id="report-content"
-          className="bg-white text-slate-900 rounded-b-xl print:rounded-none print:bg-white print:text-black"
+          className="bg-white text-slate-900 rounded-b-xl"
         >
           {children}
         </div>
       </div>
-
-      {/* Print-only stylesheet: hide everything outside the report */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #report-content, #report-content * { visibility: visible; }
-          #report-content { position: absolute; left: 0; top: 0; width: 100%; }
-          @page { size: A4; margin: 12mm 10mm; }
-        }
-      `}</style>
     </div>
   )
+
+  return createPortal(modal, document.body)
 }
