@@ -17,7 +17,7 @@
   --ink: #e6e9ef;
   --ink-dim: #9aa3b2;
   --ink-mute: #5f6877;
-  --accent: #e7c873;
+  --accent: #c6f56a;
   --accent-ink: #0a0d12;
   --pos: #7dd3a4;
   --neg: #f28b82;
@@ -27,8 +27,8 @@
   --grid: #1f2733;
   --hover: rgba(255,255,255,0.03);
   --row-hover: rgba(255,255,255,0.015);
-  --oi-tint: rgba(231,200,115,0.06);
-  --oi-tint-2: rgba(231,200,115,0.14);
+  --oi-tint: rgba(198,245,106,0.03);
+  --oi-tint-2: rgba(198,245,106,0.08);
   color-scheme: dark;
 }
 
@@ -42,7 +42,7 @@
   --ink: #0f172a;
   --ink-dim: #475569;
   --ink-mute: #94a3b8;
-  --accent: #a16207;
+  --accent: #5f8a1f;
   --accent-ink: #ffffff;
   --pos: #15803d;
   --neg: #b91c1c;
@@ -52,8 +52,8 @@
   --grid: #e3e7ee;
   --hover: rgba(15,23,42,0.04);
   --row-hover: rgba(15,23,42,0.02);
-  --oi-tint: rgba(161,98,7,0.08);
-  --oi-tint-2: rgba(161,98,7,0.16);
+  --oi-tint: rgba(95,138,31,0.05);
+  --oi-tint-2: rgba(95,138,31,0.12);
   color-scheme: light;
 }
 
