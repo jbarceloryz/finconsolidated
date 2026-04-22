@@ -54,7 +54,7 @@ export default function ReportModal({ title, onClose, children, filename }) {
 
     const doc = iframe.contentDocument || iframe.contentWindow.document
     doc.open()
-    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${(filename || title || 'Report').replace(/</g, '&lt;')}</title>
+    doc.write(`<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>${(filename || title || 'Report').replace(/</g, '&lt;')}</title>
       <style>${styleFragments.join('\n')}</style>
       <style>
         html, body { margin: 0; padding: 0; background: #ffffff; color: #0f172a; }
@@ -144,10 +144,13 @@ export default function ReportModal({ title, onClose, children, filename }) {
           </div>
         </div>
 
-        {/* Report content — this is what gets cloned to the print iframe */}
+        {/* Report content — this is what gets cloned to the print iframe.
+            Scoped to data-theme="light" so the Tailwind→Ledger remap resolves to
+            dark text on white regardless of the app's current theme. */}
         <div
           ref={contentRef}
           id="report-content"
+          data-theme="light"
           className="bg-white text-slate-900 rounded-b-xl"
         >
           {children}
