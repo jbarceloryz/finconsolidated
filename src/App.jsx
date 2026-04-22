@@ -13,13 +13,13 @@ const AnalyticsDashboard = React.lazy(() => import('./pages/AnalyticsDashboard')
 
 function PageLoader() {
   return (
-    <div className="min-h-full bg-slate-950 p-8 font-sans">
+    <div className="min-h-full p-8" style={{ background: 'var(--bg)' }}>
       <div className="max-w-7xl mx-auto space-y-4">
-        <div className="animate-pulse bg-slate-800 rounded-lg h-12 w-full" />
+        <div className="animate-pulse rounded-lg h-12 w-full" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => <div key={i} className="animate-pulse bg-slate-800 rounded-lg h-28" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="animate-pulse rounded-lg h-28" />)}
         </div>
-        <div className="animate-pulse bg-slate-800 rounded-lg h-64" />
+        <div className="animate-pulse rounded-lg h-64" />
       </div>
     </div>
   )
@@ -32,11 +32,11 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8 font-sans">
+        <div className="min-h-screen flex items-center justify-center p-8" style={{ background: 'var(--bg)' }}>
           <div className="text-center max-w-md">
-            <h1 className="text-xl font-semibold text-white mb-2">Something went wrong</h1>
-            <p className="text-slate-400 text-sm mb-4">{this.state.error?.message || 'An unexpected error occurred.'}</p>
-            <button onClick={() => window.location.reload()} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-500">Reload</button>
+            <h1 className="ledger-serif text-xl mb-2" style={{ color: 'var(--ink)' }}>Something went wrong</h1>
+            <p className="text-sm mb-4" style={{ color: 'var(--ink-dim)' }}>{this.state.error?.message || 'An unexpected error occurred.'}</p>
+            <button onClick={() => window.location.reload()} className="ledger-btn ledger-btn-primary">Reload</button>
           </div>
         </div>
       )
@@ -49,17 +49,20 @@ function ThemeToggle() {
   const { theme, toggleTheme } = useTheme()
   const isLight = theme === 'light'
   return (
-    <div className="p-2 border-t border-slate-800">
+    <div className="p-3" style={{ borderTop: '1px solid var(--line)' }}>
       <button
         onClick={toggleTheme}
-        className="w-full flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors"
+        style={{ color: 'var(--ink-dim)', background: 'transparent' }}
+        onMouseOver={(e) => { e.currentTarget.style.background = 'var(--hover)'; e.currentTarget.style.color = 'var(--ink)' }}
+        onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-dim)' }}
       >
         {isLight ? (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         )}
-        {isLight ? 'Dark Mode' : 'Light Mode'}
+        <span style={{ fontSize: 12 }}>{isLight ? 'Dark Mode' : 'Light Mode'}</span>
       </button>
     </div>
   )
@@ -69,27 +72,34 @@ const AUTH_KEY = 'finconsolidated-auth'
 const PASSWORD = '!accounting123$'
 
 const navItems = [
-  { path: '/', label: 'Home', end: true },
+  { path: '/', label: 'Overview', end: true },
   { path: '/cashflow', label: 'Cashflow' },
   { path: '/net-income', label: 'Net Income' },
   { path: '/gp-analysis', label: 'GP Analysis' },
-  { path: '/accounts-payable', label: 'AP' },
+  { path: '/accounts-payable', label: 'Accounts Payable' },
   { path: '/analytics', label: 'Analytics' },
 ]
 
-function PageHeader() {
+function pad2(n) { return n < 10 ? '0' + n : String(n) }
+
+function Topbar() {
   const location = useLocation()
-  const current = navItems.find((item) => {
-    if (item.end) return location.pathname === item.path
-    return location.pathname.startsWith(item.path)
-  })
-  if (!current || current.path === '/') return null
+  const idx = navItems.findIndex((item) => item.end ? location.pathname === item.path : location.pathname.startsWith(item.path))
+  const current = idx >= 0 ? navItems[idx] : navItems[0]
   return (
-    <div className="bg-slate-900/40 border-b border-slate-800 px-6 py-3 md:px-8">
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-slate-500">Dashboards</span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-600"><polyline points="9 18 15 12 9 6"/></svg>
-        <span className="text-slate-200 font-medium">{current.label}</span>
+    <div
+      className="flex items-center justify-between px-6 py-4"
+      style={{ borderBottom: '1px solid var(--line)', background: 'var(--bg)' }}
+    >
+      <div className="flex items-center gap-3">
+        <span className="ledger-eyebrow">{pad2((idx >= 0 ? idx : 0) + 1)}</span>
+        <h2 className="ledger-serif" style={{ fontSize: 18, color: 'var(--ink)', margin: 0 }}>{current.label}</h2>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="ledger-pill">
+          <span className="ledger-dot" style={{ background: 'var(--pos)' }} />
+          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>synced</span>
+        </span>
       </div>
     </div>
   )
@@ -115,25 +125,30 @@ function App() {
 
   if (!unlocked) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8 font-sans">
-        <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900/80 p-8 shadow-2xl">
-          <h1 className="font-display text-xl font-semibold text-white mb-1">Finance Consolidated</h1>
-          <p className="text-sm text-slate-400 mb-6">Enter password to access dashboards.</p>
+      <div className="min-h-screen flex items-center justify-center p-8" style={{ background: 'var(--bg)' }}>
+        <div className="w-full max-w-sm ledger-card elev p-8">
+          <div className="ledger-eyebrow mb-2">Ledger · Finance</div>
+          <h1 className="ledger-serif mb-1" style={{ fontSize: 22, color: 'var(--ink)' }}>Finance Consolidated</h1>
+          <p className="text-sm mb-6" style={{ color: 'var(--ink-dim)' }}>Enter password to access dashboards.</p>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <input
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="Password"
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm"
+              style={{
+                background: 'var(--bg-card-elev)',
+                border: '1px solid var(--line-strong)',
+                borderRadius: 4,
+                color: 'var(--ink)',
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
               autoFocus
               autoComplete="current-password"
             />
-            {passwordError && <p className="text-sm text-rose-400">{passwordError}</p>}
-            <button
-              type="submit"
-              className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-            >
+            {passwordError && <p className="text-sm" style={{ color: 'var(--neg)' }}>{passwordError}</p>}
+            <button type="submit" className="ledger-btn ledger-btn-primary w-full justify-center" style={{ padding: '8px 16px' }}>
               Unlock
             </button>
           </form>
@@ -143,87 +158,119 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans">
+    <div className="min-h-screen flex" style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          className="fixed inset-0 z-30 md:hidden"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-40 w-56 border-r border-slate-800 bg-slate-900/95 backdrop-blur-sm flex flex-col
-        transform transition-transform duration-200 ease-in-out
-        md:relative md:translate-x-0 md:bg-slate-900/50 md:backdrop-blur-none
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-40 flex flex-col
+          transform transition-transform duration-200 ease-in-out
+          md:relative md:translate-x-0
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+        style={{
+          width: 224,
+          background: 'var(--bg-side)',
+          borderRight: '1px solid var(--line)',
+        }}
+      >
+        <div className="px-5 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--line)' }}>
           <div>
-            <h1 className="font-display font-semibold text-white tracking-tight">Finance Consolidated</h1>
-            <p className="text-xs text-slate-500 mt-0.5">Dashboards</p>
+            <div className="ledger-eyebrow" style={{ marginBottom: 2 }}>Ledger</div>
+            <h1 className="ledger-serif" style={{ fontSize: 16, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
+              Finance
+            </h1>
           </div>
-          {/* Close button on mobile */}
           <button
             onClick={() => setSidebarOpen(false)}
-            className="md:hidden p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+            className="md:hidden p-1 rounded"
+            style={{ color: 'var(--ink-dim)' }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-        <nav className="flex-1 p-2 space-y-0.5">
-          {navItems.map(({ path, label, end }) => (
+
+        <div className="px-5 pt-5 pb-2">
+          <div className="ledger-eyebrow">Navigation</div>
+        </div>
+
+        <nav className="flex-1 px-2 space-y-0.5">
+          {navItems.map(({ path, label, end }, i) => (
             <NavLink
               key={path}
               to={path}
               end={!!end}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-emerald-500/20 text-emerald-400'
-                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                }`
+                `flex items-center gap-3 px-3 py-2 text-sm transition-colors ${isActive ? 'is-active' : ''}`
               }
+              style={({ isActive }) => ({
+                color: isActive ? 'var(--ink)' : 'var(--ink-dim)',
+                background: isActive ? 'var(--hover)' : 'transparent',
+                borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+                paddingLeft: 14,
+                fontWeight: isActive ? 500 : 400,
+                textDecoration: 'none',
+              })}
             >
-              {label}
+              <span
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 10,
+                  letterSpacing: '0.1em',
+                  color: 'var(--ink-mute)',
+                  width: 18,
+                }}
+              >
+                {pad2(i + 1)}
+              </span>
+              <span>{label}</span>
             </NavLink>
           ))}
         </nav>
+
         <ThemeToggle />
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-auto">
+      <div className="flex-1 flex flex-col overflow-auto" style={{ minWidth: 0 }}>
         {/* Demo mode banner */}
         {IS_DEMO && (
-          <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 text-center">
-            <span className="text-amber-300 text-xs font-medium">
-              🔶 Demo Mode — All data shown is sample data for demonstration purposes only
+          <div className="px-4 py-2 text-center" style={{ background: 'rgba(231,200,115,0.1)', borderBottom: '1px solid rgba(231,200,115,0.3)' }}>
+            <span className="text-xs font-medium" style={{ color: 'var(--warn)', fontFamily: "'JetBrains Mono', monospace" }}>
+              DEMO MODE · All data is sample data for demonstration purposes only
             </span>
           </div>
         )}
 
-        {/* Mobile hamburger + breadcrumb header */}
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-800 bg-slate-900/60">
+        {/* Mobile hamburger */}
+        <div className="md:hidden flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid var(--line)', background: 'var(--bg-side)' }}>
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-md"
+            style={{ color: 'var(--ink-dim)' }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <span className="text-sm font-medium text-slate-300">Finance Consolidated</span>
+          <span className="text-sm" style={{ color: 'var(--ink)' }}>Finance Consolidated</span>
         </div>
 
-        {/* Desktop breadcrumb */}
+        {/* Desktop topbar */}
         <div className="hidden md:block">
-          <PageHeader />
+          <Topbar />
         </div>
 
-        {/* Mobile breadcrumb (below hamburger bar) */}
+        {/* Mobile topbar */}
         <div className="md:hidden">
-          <PageHeader />
+          <Topbar />
         </div>
 
         <main className="flex-1 overflow-auto">

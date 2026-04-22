@@ -3,28 +3,65 @@ import { Link } from 'react-router-dom'
 
 export default function Home() {
   const dashboards = [
-    { path: '/cashflow', name: 'Cashflow', description: 'Payment timeline, summary cards, invoice table and cash flow simulator.' },
-    { path: '/net-income', name: 'Net Income', description: 'Operating income by period, P&L by entity, HC revenue vs projected.' },
-    { path: '/gp-analysis', name: 'GP Analysis', description: 'Talent pool net margin gain/loss, onboarded vs offboarded.' },
-    { path: '/accounts-payable', name: 'AP', description: 'Accounts payable tracker — record invoices, track aging, and manage payments by company.' },
-    { path: '/analytics', name: 'Analytics', description: 'Cross-dashboard insights — client revenue breakdown, overdue invoice aging, and payment terms analysis.' },
+    { num: '01', path: '/cashflow', name: 'Cashflow', description: 'Payment timeline, summary cards, invoice table and cash flow simulator.' },
+    { num: '02', path: '/net-income', name: 'Net Income', description: 'Operating income by period, P&L by entity, HC revenue vs projected.' },
+    { num: '03', path: '/gp-analysis', name: 'GP Analysis', description: 'Talent pool net margin gain/loss, onboarded vs offboarded.' },
+    { num: '04', path: '/accounts-payable', name: 'Accounts Payable', description: 'AP tracker — record invoices, track aging, and manage payments by company.' },
+    { num: '05', path: '/analytics', name: 'Analytics', description: 'Cross-dashboard insights — client revenue, overdue aging, and payment terms.' },
   ]
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12 font-sans">
-      <h1 className="font-display text-2xl font-semibold text-white mb-2">Welcome</h1>
-      <p className="text-slate-400 mb-10">
+    <div className="max-w-4xl mx-auto px-8 py-12">
+      <div className="ledger-eyebrow mb-3">Welcome</div>
+      <h1 className="ledger-serif mb-2" style={{ fontSize: 32, color: 'var(--ink)', margin: 0 }}>
+        Finance Consolidated
+      </h1>
+      <p className="mb-10 mt-3" style={{ color: 'var(--ink-dim)', fontSize: 14 }}>
         Use the menu on the left to open any dashboard. Only one dashboard is shown at a time.
       </p>
-      <div className="space-y-4">
+
+      <div className="ledger-eyebrow mb-4">Dashboards</div>
+      <div className="space-y-0" style={{ borderTop: '1px solid var(--line)' }}>
         {dashboards.map((d) => (
           <Link
             key={d.path}
             to={d.path}
-            className="block rounded-xl border border-slate-800 bg-slate-900/60 p-5 hover:bg-slate-800/60 hover:border-slate-700 transition-colors"
+            className="flex items-center gap-5 py-5 group"
+            style={{
+              borderBottom: '1px solid var(--line)',
+              textDecoration: 'none',
+              transition: 'background 0.12s',
+            }}
+            onMouseOver={(e) => { e.currentTarget.style.background = 'var(--row-hover)' }}
+            onMouseOut={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
-            <h2 className="font-medium text-slate-200">{d.name}</h2>
-            <p className="text-sm text-slate-500 mt-1">{d.description}</p>
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                letterSpacing: '0.14em',
+                color: 'var(--ink-mute)',
+                minWidth: 28,
+              }}
+            >
+              {d.num}
+            </span>
+            <div className="flex-1">
+              <div className="ledger-serif" style={{ fontSize: 18, color: 'var(--ink)', marginBottom: 2 }}>
+                {d.name}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--ink-dim)' }}>{d.description}</div>
+            </div>
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                color: 'var(--ink-mute)',
+                letterSpacing: '0.08em',
+              }}
+            >
+              →
+            </span>
           </Link>
         ))}
       </div>
