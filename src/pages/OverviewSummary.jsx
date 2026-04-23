@@ -98,10 +98,9 @@ function SummaryCard({ eyebrow, headline, subhead, narrative, to, cta, tone = 'i
 }
 
 export default function OverviewSummary() {
-  const { fetchNetIncome, fetchAP } = useDataCache()
+  const { fetchNetIncome } = useDataCache()
   const [netIncome, setNetIncome] = useState(null)
   const [cashSettings, setCashSettings] = useState(null)
-  const [apInvoices, setApInvoices] = useState([])
   const [talentRows, setTalentRows] = useState(null)
   const [error, setError] = useState(null)
 
@@ -111,10 +110,6 @@ export default function OverviewSummary() {
     fetchNetIncome(false)
       .then((d) => { if (!cancelled) setNetIncome(d) })
       .catch((err) => { if (!cancelled) setError(err?.message || 'Failed to load net income') })
-
-    fetchAP(false)
-      .then((d) => { if (!cancelled && Array.isArray(d)) setApInvoices(d) })
-      .catch(() => {})
 
     if (IS_DEMO || !isSupabaseConfigured()) {
       // Demo / no-supabase fallback: leave cashSettings + talentRows null so
@@ -142,53 +137,74 @@ export default function OverviewSummary() {
       .then(({ data }) => { if (!cancelled) setTalentRows(data || []) })
 
     return () => { cancelled = true }
-  }, [fetchNetIncome, fetchAP])
+  }, [fetchNetIncome])
 
-  // ── Derive current / previous month from the net income dataset ───────────
+  // ── Derive current / previous month ───────────────────────────────────────
+  // The "current month" is today's calendar month (so the Overview reflects
+  // real-world time, not the furthest forecast period in the dataset). We
+  // pick the matching label from netIncome.months so downstream lookups work;
+  // if today's month isn't in the dataset, we fall back to the latest past
+  // month that is ≤ today.
   const { currentMonth, prevMonth } = useMemo(() => {
     if (!netIncome?.months?.length) return { currentMonth: null, prevMonth: null }
     const sorted = [...netIncome.months].sort((a, b) => monthSortKey(a) - monthSortKey(b))
-    const curr = sorted[sorted.length - 1]
-    const prev = sorted.length > 1 ? sorted[sorted.length - 2] : null
+    const now = new Date()
+    const todayKey = now.getFullYear() * 12 + now.getMonth()
+
+    // Exact match for today's month, else the latest month ≤ today, else latest.
+    let curr = sorted.find((m) => monthSortKey(m) === todayKey)
+    if (!curr) {
+      const pastOrNow = sorted.filter((m) => monthSortKey(m) <= todayKey)
+      curr = pastOrNow.length ? pastOrNow[pastOrNow.length - 1] : sorted[sorted.length - 1]
+    }
+
+    const currIdx = sorted.indexOf(curr)
+    const prev = currIdx > 0 ? sorted[currIdx - 1] : null
     return { currentMonth: curr, prevMonth: prev }
   }, [netIncome])
 
   const currentMonthName = longMonthLabel(currentMonth)
 
   // ── Cash position ────────────────────────────────────────────────────────
+  // Focus on the upcoming *payroll* cycle — any outgoing payment whose label
+  // contains "payroll" (case-insensitive). This covers both actual payroll
+  // and "payroll estimate" entries. Non-payroll outflows are ignored here.
   const cash = useMemo(() => {
     if (!cashSettings) return null
     const balance = cashSettings.balance
     const today = new Date(); today.setHours(0, 0, 0, 0)
-    const horizon = new Date(today); horizon.setDate(today.getDate() + 14)
 
-    const upcoming = (cashSettings.outgoings || [])
+    const isPayroll = (p) => {
+      const haystack = [p.description, p.name, p.label, p.title, p.category, p.type]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes('payroll')
+    }
+
+    const upcomingPayroll = (cashSettings.outgoings || [])
       .map((p) => {
         const [y, m, d] = String(p.date || '').split('-').map((x) => parseInt(x, 10))
         if (!y || !m || !d) return null
         return { ...p, _date: new Date(y, m - 1, d), _amount: Math.abs(parseFloat(p.amount) || 0) }
       })
-      .filter((p) => p && p._date >= today && p._date <= horizon)
+      .filter((p) => p && isPayroll(p) && p._date >= today)
       .sort((a, b) => a._date - b._date)
 
-    // Also include AP invoices becoming due in the same horizon
-    const apUpcoming = (apInvoices || [])
-      .filter((inv) => {
-        const status = (inv.status || '').toUpperCase()
-        if (status !== 'APPROVED' && status !== 'OVERDUE') return false
-        const due = inv.dueDate ? new Date(inv.dueDate) : null
-        if (!due || isNaN(due)) return false
-        due.setHours(0, 0, 0, 0)
-        return due >= today && due <= horizon
-      })
-      .map((inv) => ({ _date: new Date(inv.dueDate), _amount: Math.abs(Number(inv.amount) || 0), description: `AP: ${inv.vendor || inv.company || ''}` }))
+    if (upcomingPayroll.length === 0) {
+      return { balance, nextTotal: 0, nextDate: null, projected: null, count: 0 }
+    }
 
-    const nextOutflows = [...upcoming, ...apUpcoming].sort((a, b) => a._date - b._date)
-    const nextTotal = nextOutflows.reduce((s, p) => s + p._amount, 0)
-    const nextDate = nextOutflows.length ? nextOutflows[0]._date : null
-    const projected = nextTotal > 0 ? balance - nextTotal : null
-    return { balance, nextTotal, nextDate, projected, count: nextOutflows.length }
-  }, [cashSettings, apInvoices])
+    // Group all payroll items that fall within ~7 days of the first upcoming
+    // one into the same "cycle" (covers e.g. payroll + payroll estimate on
+    // adjacent days).
+    const cycleAnchor = upcomingPayroll[0]._date
+    const cycleEnd = new Date(cycleAnchor); cycleEnd.setDate(cycleEnd.getDate() + 7)
+    const cycle = upcomingPayroll.filter((p) => p._date <= cycleEnd)
+    const nextTotal = cycle.reduce((s, p) => s + p._amount, 0)
+    const projected = balance - nextTotal
+    return { balance, nextTotal, nextDate: cycleAnchor, projected, count: cycle.length }
+  }, [cashSettings])
 
   // ── Net income (MoM) ─────────────────────────────────────────────────────
   const ni = useMemo(() => {
@@ -241,9 +257,9 @@ export default function OverviewSummary() {
   // ── Narratives ───────────────────────────────────────────────────────────
   const cashNarrative = cash
     ? (cash.nextTotal > 0
-        ? `Current bank balance is ${fmtMoney(cash.balance)}. Estimated near-term outflow is ~${fmtMoneyShort(cash.nextTotal)}${cash.nextDate ? ` (next due ${fmtDate(cash.nextDate)})` : ''}, bringing the projected balance to ~${fmtMoneyShort(cash.projected)} after that cycle.`
-        : `Current bank balance is ${fmtMoney(cash.balance)}. No outgoing payments scheduled in the next 14 days.`)
-    : 'Open the Cashflow tab to review the current balance and upcoming outflows.'
+        ? `Current bank balance is ${fmtMoney(cash.balance)}. Estimated payroll outflow for the upcoming cycle is approximately ${fmtMoneyShort(cash.nextTotal)}${cash.nextDate ? ` (due ${fmtDate(cash.nextDate)})` : ''}, which would bring the projected balance to ~${fmtMoneyShort(cash.projected)} after that week.`
+        : `Current bank balance is ${fmtMoney(cash.balance)}. No upcoming payroll cycle scheduled.`)
+    : 'Open the Cashflow tab to review the current balance and upcoming payroll.'
 
   const niNarrative = ni
     ? (ni.prevOI != null
@@ -274,7 +290,7 @@ export default function OverviewSummary() {
         <SummaryCard
           eyebrow="Cash Position"
           headline={cash ? fmtMoney(cash.balance) : '—'}
-          subhead={cash && cash.nextTotal > 0 ? `Next outflow · ${fmtMoneyShort(cash.nextTotal)} → ~${fmtMoneyShort(cash.projected)}` : cash ? 'No outflows in next 14d' : null}
+          subhead={cash && cash.nextTotal > 0 ? `Next payroll · ${fmtMoneyShort(cash.nextTotal)} → ~${fmtMoneyShort(cash.projected)}` : cash ? 'No payroll cycle scheduled' : null}
           narrative={cashNarrative}
           to="/cashflow"
           cta="Cashflow"
