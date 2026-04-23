@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import OverviewSummary from './OverviewSummary'
 
 export default function Home() {
   const dashboards = [
@@ -19,6 +20,8 @@ export default function Home() {
       <p className="mb-10 mt-3" style={{ color: 'var(--ink-dim)', fontSize: 14 }}>
         Use the menu on the left to open any dashboard. Only one dashboard is shown at a time.
       </p>
+
+      <OverviewSummary />
 
       <div className="ledger-eyebrow mb-4">Dashboards</div>
       <div className="space-y-0" style={{ borderTop: '1px solid var(--line)' }}>
