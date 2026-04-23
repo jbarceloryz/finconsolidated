@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase'
+import { monthSortKey } from '../dashboards/netincome/utils/parseFinancialCsv'
 
 const METRIC_KEYS = ['totalIncome', 'cogs', 'grossProfit', 'totalExpenses', 'operatingIncome']
 
@@ -24,18 +25,12 @@ export async function fetchNetIncomeFromSupabase() {
   const hcRows = hcRes.data || []
   const varRows = varRes.data || []
 
-  const MONTH_ABBR = [
-    'Jan','Feb','Mar','Apr','May','Jun',
-    'Jul','Aug','Sep','Oct','Nov','Dec',
-  ]
+  // Always sort months into calendar order. monthSortKey handles multiple
+  // label shapes ("Jan-25", "January-2026", "Apr" with no year, etc.), so
+  // reimported data never ends up alphabetical like "Apr, Aug, Dec, Feb…".
   const periodSet = new Set()
   metrics.forEach((r) => periodSet.add(r.period_label))
-  const months = [...periodSet].sort((a, b) => {
-    const [aMonth, aYear] = a.split('-')
-    const [bMonth, bYear] = b.split('-')
-    if (aYear !== bYear) return Number(aYear) - Number(bYear)
-    return MONTH_ABBR.indexOf(aMonth) - MONTH_ABBR.indexOf(bMonth)
-  })
+  const months = [...periodSet].sort((a, b) => monthSortKey(a) - monthSortKey(b))
 
   const byCompany = {}
   const metricsByCompany = {}
