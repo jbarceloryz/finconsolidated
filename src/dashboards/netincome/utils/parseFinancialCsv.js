@@ -38,6 +38,25 @@ const COMPANY_HEADERS = [
   'Ryz Labs LLC',
 ];
 
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+/**
+ * Convert a month label (e.g. "Jan-25", "March-2026") to a sortable integer
+ * so we can always present months in calendar order regardless of CSV ordering.
+ */
+export function monthSortKey(label) {
+  if (!label) return Number.MAX_SAFE_INTEGER;
+  const parts = String(label).split(/[-\s/]/);
+  const name = (parts[0] || '').trim();
+  let mi = MONTH_ABBR.indexOf(name);
+  if (mi < 0) mi = MONTH_FULL.indexOf(name);
+  if (mi < 0) return Number.MAX_SAFE_INTEGER;
+  const rawYr = parts[1] ? parseInt(String(parts[1]).trim(), 10) : 0;
+  const year = isNaN(rawYr) ? 0 : (rawYr < 100 ? 2000 + rawYr : rawYr);
+  return year * 12 + mi;
+}
+
 const ROW_LABELS = {
   'Total Income': 'totalIncome',
   'Total Cost of Goods Sold': 'cogs',
@@ -124,6 +143,38 @@ export function parseFinancialCsv(csvText) {
           metricsByCompany[currentCompany][metricKey] = values.slice(0, months.length);
         }
       }
+    }
+  }
+
+  // Sort months chronologically and reorder every aligned array to match.
+  // This makes the dashboard resilient to CSVs whose month columns are in
+  // arbitrary order (e.g. mixed years, reimported sheets).
+  if (months.length > 1) {
+    const order = months.map((_, i) => i).sort((a, b) => monthSortKey(months[a]) - monthSortKey(months[b]));
+    const isAlreadySorted = order.every((v, i) => v === i);
+    if (!isAlreadySorted) {
+      const reorder = (arr) => order.map((i) => (arr && arr[i] !== undefined ? arr[i] : 0));
+      months = order.map((i) => months[i]);
+      for (const company of Object.keys(byCompany)) {
+        byCompany[company] = reorder(byCompany[company]);
+      }
+      for (const company of Object.keys(metricsByCompany)) {
+        for (const metric of Object.keys(metricsByCompany[company])) {
+          metricsByCompany[company][metric] = reorder(metricsByCompany[company][metric]);
+        }
+      }
+      // hcProjectedSales / varianceVsProjected were captured with the same
+      // column layout as the metric rows, so they need the same reorder.
+      // They were previously sliced to 12; respect whichever index range the
+      // original order uses by mapping positions through `order`.
+      const reorderCapped = (arr) => {
+        if (!arr || arr.length === 0) return arr;
+        return order
+          .map((i) => (i < arr.length && arr[i] !== undefined ? arr[i] : null))
+          .filter((v) => v !== null);
+      };
+      hcProjectedSales = reorderCapped(hcProjectedSales);
+      varianceVsProjected = reorderCapped(varianceVsProjected);
     }
   }
 
