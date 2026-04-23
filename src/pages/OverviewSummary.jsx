@@ -98,9 +98,10 @@ function SummaryCard({ eyebrow, headline, subhead, narrative, to, cta, tone = 'i
 }
 
 export default function OverviewSummary() {
-  const { fetchNetIncome } = useDataCache()
+  const { fetchNetIncome, fetchAP } = useDataCache()
   const [netIncome, setNetIncome] = useState(null)
-  const [cashSettings, setCashSettings] = useState(null)
+  const [cashBalance, setCashBalance] = useState(null)
+  const [apInvoices, setApInvoices] = useState([])
   const [talentRows, setTalentRows] = useState(null)
   const [error, setError] = useState(null)
 
@@ -111,33 +112,36 @@ export default function OverviewSummary() {
       .then((d) => { if (!cancelled) setNetIncome(d) })
       .catch((err) => { if (!cancelled) setError(err?.message || 'Failed to load net income') })
 
+    fetchAP(false)
+      .then((d) => { if (!cancelled && Array.isArray(d)) setApInvoices(d) })
+      .catch(() => {})
+
     if (IS_DEMO || !isSupabaseConfigured()) {
-      // Demo / no-supabase fallback: leave cashSettings + talentRows null so
-      // the cards render a placeholder narrative rather than fake data.
-      if (!cancelled) { setCashSettings(null); setTalentRows([]) }
+      if (!cancelled) { setCashBalance(null); setTalentRows([]) }
       return () => { cancelled = true }
     }
 
     supabase
       .from('cashflow_settings')
-      .select('current_balance, outgoing_payments')
+      .select('current_balance')
       .eq('id', 1)
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled) return
-        setCashSettings({
-          balance: Number(data?.current_balance) || 0,
-          outgoings: Array.isArray(data?.outgoing_payments) ? data.outgoing_payments : [],
-        })
+        setCashBalance(Number(data?.current_balance) || 0)
       })
 
+    // Pull only the columns we need, and ensure we fetch enough rows to
+    // cover the current + previous calendar months even if the table grows
+    // past Supabase's default 1000-row limit.
     supabase
       .from('talent_pool')
       .select('status, net_margin, month')
+      .range(0, 9999)
       .then(({ data }) => { if (!cancelled) setTalentRows(data || []) })
 
     return () => { cancelled = true }
-  }, [fetchNetIncome])
+  }, [fetchNetIncome, fetchAP])
 
   // ── Derive current / previous month ───────────────────────────────────────
   // The "current month" is today's calendar month (so the Overview reflects
@@ -166,45 +170,48 @@ export default function OverviewSummary() {
   const currentMonthName = longMonthLabel(currentMonth)
 
   // ── Cash position ────────────────────────────────────────────────────────
-  // Focus on the upcoming *payroll* cycle — any outgoing payment whose label
-  // contains "payroll" (case-insensitive). This covers both actual payroll
-  // and "payroll estimate" entries. Non-payroll outflows are ignored here.
+  // Pull the next upcoming payroll / payroll-estimate entry from the AP tab.
+  // We always surface the soonest payroll entry regardless of how far away
+  // it is — even if it's past the 14-day window. Matches by scanning the
+  // invoice's description / vendor / category / invoice number for the word
+  // "payroll" (case-insensitive, covers "Payroll Estimate" too).
   const cash = useMemo(() => {
-    if (!cashSettings) return null
-    const balance = cashSettings.balance
+    if (cashBalance == null) return null
     const today = new Date(); today.setHours(0, 0, 0, 0)
 
-    const isPayroll = (p) => {
-      const haystack = [p.description, p.name, p.label, p.title, p.category, p.type]
+    const isPayroll = (inv) => {
+      const haystack = [inv.description, inv.vendor, inv.category, inv.invoiceNumber, inv.notes]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
       return haystack.includes('payroll')
     }
 
-    const upcomingPayroll = (cashSettings.outgoings || [])
-      .map((p) => {
-        const [y, m, d] = String(p.date || '').split('-').map((x) => parseInt(x, 10))
-        if (!y || !m || !d) return null
-        return { ...p, _date: new Date(y, m - 1, d), _amount: Math.abs(parseFloat(p.amount) || 0) }
+    const upcomingPayroll = (apInvoices || [])
+      .filter((inv) => {
+        const status = String(inv.status || '').toUpperCase()
+        if (status === 'PAID' || status === 'VOID') return false
+        if (!inv.dueDate) return false
+        const due = inv.dueDate instanceof Date ? inv.dueDate : new Date(inv.dueDate)
+        if (isNaN(due)) return false
+        due.setHours(0, 0, 0, 0)
+        return due >= today && isPayroll(inv)
       })
-      .filter((p) => p && isPayroll(p) && p._date >= today)
+      .map((inv) => ({
+        _date: inv.dueDate instanceof Date ? inv.dueDate : new Date(inv.dueDate),
+        _amount: Math.abs(Number(inv.amount) || 0),
+        description: inv.description || inv.vendor || 'Payroll',
+      }))
       .sort((a, b) => a._date - b._date)
 
     if (upcomingPayroll.length === 0) {
-      return { balance, nextTotal: 0, nextDate: null, projected: null, count: 0 }
+      return { balance: cashBalance, nextTotal: 0, nextDate: null, projected: null, count: 0 }
     }
 
-    // Group all payroll items that fall within ~7 days of the first upcoming
-    // one into the same "cycle" (covers e.g. payroll + payroll estimate on
-    // adjacent days).
-    const cycleAnchor = upcomingPayroll[0]._date
-    const cycleEnd = new Date(cycleAnchor); cycleEnd.setDate(cycleEnd.getDate() + 7)
-    const cycle = upcomingPayroll.filter((p) => p._date <= cycleEnd)
-    const nextTotal = cycle.reduce((s, p) => s + p._amount, 0)
-    const projected = balance - nextTotal
-    return { balance, nextTotal, nextDate: cycleAnchor, projected, count: cycle.length }
-  }, [cashSettings])
+    const next = upcomingPayroll[0]
+    const projected = cashBalance - next._amount
+    return { balance: cashBalance, nextTotal: next._amount, nextDate: next._date, projected, count: 1, description: next.description }
+  }, [cashBalance, apInvoices])
 
   // ── Net income (MoM) ─────────────────────────────────────────────────────
   const ni = useMemo(() => {
@@ -230,15 +237,32 @@ export default function OverviewSummary() {
   }, [netIncome, currentMonth, prevMonth])
 
   // ── GP / Headcount ───────────────────────────────────────────────────────
+  // Derive month keys straight from today's calendar date — the talent_pool
+  // table is keyed by "MM/YY" regardless of what the Net Income dataset
+  // contains, so we don't want to couple GP to period labels here.
   const gp = useMemo(() => {
-    if (!talentRows || !currentMonth) return null
-    const currKey = talentPoolMonthKey(currentMonth)
-    const prevKey = talentPoolMonthKey(prevMonth)
-    const agg = (key) => {
-      if (!key) return null
+    if (!talentRows) return null
+    const now = new Date()
+    const currY = now.getFullYear(), currM = now.getMonth() // 0-based
+    const prevDate = new Date(currY, currM - 1, 1)
+    const prevY = prevDate.getFullYear(), prevM = prevDate.getMonth()
+
+    const buildKey = (y, m) => `${String(m + 1).padStart(2, '0')}/${String(y).slice(-2)}`
+    const currKey = buildKey(currY, currM)
+    const prevKey = buildKey(prevY, prevM)
+    // Also accept non-zero-padded variants (e.g. "4/26") in case any row
+    // was inserted without padding.
+    const variants = (y, m) => new Set([
+      `${String(m + 1).padStart(2, '0')}/${String(y).slice(-2)}`,
+      `${m + 1}/${String(y).slice(-2)}`,
+    ])
+    const currSet = variants(currY, currM)
+    const prevSet = variants(prevY, prevM)
+
+    const agg = (keySet) => {
       let on = 0, off = 0, gain = 0, loss = 0
       for (const r of talentRows) {
-        if (r.month !== key) continue
+        if (!keySet.has(r.month)) continue
         const status = String(r.status || '').toLowerCase()
         const m = Number(r.net_margin) || 0
         if (status === 'onboarded') { on += 1; gain += m }
@@ -246,8 +270,16 @@ export default function OverviewSummary() {
       }
       return { on, off, gain, loss, net: gain - loss, netCount: on - off }
     }
-    return { current: agg(currKey), previous: agg(prevKey) }
-  }, [talentRows, currentMonth, prevMonth])
+    // Label helpers for the narrative (independent of netIncome.months)
+    const monthLabel = (y, m) => `${FULL_MONTHS[m]} ${y}`
+    return {
+      current: agg(currSet),
+      previous: agg(prevSet),
+      currentLabel: monthLabel(currY, currM),
+      previousLabel: monthLabel(prevY, prevM),
+      _keys: { currKey, prevKey },
+    }
+  }, [talentRows])
 
   if (error) return null
 
@@ -268,7 +300,7 @@ export default function OverviewSummary() {
     : 'Open the Net Income tab to see monthly operating income by entity.'
 
   const gpNarrative = gp?.current
-    ? `The talent pool closed ${currentMonthName} with ${gp.current.on} new placement${gp.current.on === 1 ? '' : 's'} and ${gp.current.off} offboarding${gp.current.off === 1 ? '' : 's'}, a net change of ${gp.current.netCount >= 0 ? '+' : ''}${gp.current.netCount} contractor${Math.abs(gp.current.netCount) === 1 ? '' : 's'}. Net margin won came in at ${fmtMoney(gp.current.net)}${gp.previous ? ` versus ${fmtMoney(gp.previous.net)} in ${longMonthLabel(prevMonth)}` : ''}.`
+    ? `The talent pool closed ${gp.currentLabel} with ${gp.current.on} new placement${gp.current.on === 1 ? '' : 's'} and ${gp.current.off} offboarding${gp.current.off === 1 ? '' : 's'}, a net change of ${gp.current.netCount >= 0 ? '+' : ''}${gp.current.netCount} contractor${Math.abs(gp.current.netCount) === 1 ? '' : 's'}. Net margin won came in at ${fmtMoney(gp.current.net)}${gp.previous ? ` versus ${fmtMoney(gp.previous.net)} in ${gp.previousLabel}` : ''}.`
     : 'Open the GP Analysis tab to see onboardings, offboardings, and net margin movement.'
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -305,7 +337,7 @@ export default function OverviewSummary() {
           tone={ni?.currOI != null ? (ni.currOI >= 0 ? 'pos' : 'neg') : 'ink'}
         />
         <SummaryCard
-          eyebrow={`GP / Headcount · ${currentMonthName || '—'}`}
+          eyebrow={`GP / Headcount · ${gp?.currentLabel || currentMonthName || '—'}`}
           headline={gp?.current ? `${gp.current.netCount >= 0 ? '+' : ''}${gp.current.netCount}` : '—'}
           subhead={gp?.current ? `${gp.current.on} on · ${gp.current.off} off · ${fmtMoney(gp.current.net)}` : null}
           narrative={gpNarrative}
