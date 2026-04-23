@@ -289,18 +289,18 @@ export default function OverviewSummary() {
   // ── Narratives ───────────────────────────────────────────────────────────
   const cashNarrative = cash
     ? (cash.nextTotal > 0
-        ? `Current bank balance is ${fmtMoney(cash.balance)}. Estimated payroll outflow for the upcoming cycle is approximately ${fmtMoneyShort(cash.nextTotal)}${cash.nextDate ? ` (due ${fmtDate(cash.nextDate)})` : ''}, which would bring the projected balance to ~${fmtMoneyShort(cash.projected)} after that week.`
-        : `Current bank balance is ${fmtMoney(cash.balance)}. No upcoming payroll cycle scheduled.`)
+        ? `Current bank balance is ${fmtMoney(cash.balance)}. The next payroll item in the AP tab — ${cash.description} — is ${fmtMoney(cash.nextTotal)}${cash.nextDate ? `, due ${fmtDate(cash.nextDate)}` : ''}. Applying that outflow brings the projected balance to ~${fmtMoneyShort(cash.projected)}.`
+        : `Current bank balance is ${fmtMoney(cash.balance)}. No upcoming payroll item found in the AP tab.`)
     : 'Open the Cashflow tab to review the current balance and upcoming payroll.'
 
   const niNarrative = ni
     ? (ni.prevOI != null
-        ? `${currentMonthName} operating income came in at ${fmtMoney(ni.currOI)}, ${ni.currOI >= ni.prevOI ? 'up from' : 'down from'} ${fmtMoney(ni.prevOI)} in ${longMonthLabel(prevMonth)} — a ${fmtPct(ni.deltaPct)} ${ni.currOI >= ni.prevOI ? 'improvement' : 'change'} MoM.${ni.driver ? ` ${ni.driver.name} is the main driver, contributing ${fmtMoney(ni.driver.oi)} for the month.` : ''}`
-        : `${currentMonthName} operating income came in at ${fmtMoney(ni.currOI)}.${ni.driver ? ` ${ni.driver.name} is the main driver (${fmtMoney(ni.driver.oi)}).` : ''}`)
+        ? `${currentMonthName} operating income is tracking at ${fmtMoney(ni.currOI)} so far, ${ni.currOI >= ni.prevOI ? 'running ahead of' : 'running behind'} ${fmtMoney(ni.prevOI)} from ${longMonthLabel(prevMonth)} — a ${fmtPct(ni.deltaPct)} MoM movement in progress.${ni.driver ? ` ${ni.driver.name} is the current main driver at ${fmtMoney(ni.driver.oi)}.` : ''} Numbers are in-flight and may shift before month-end.`
+        : `${currentMonthName} operating income is tracking at ${fmtMoney(ni.currOI)} so far.${ni.driver ? ` ${ni.driver.name} is the current main driver (${fmtMoney(ni.driver.oi)}).` : ''} Numbers are in-flight and may shift before month-end.`)
     : 'Open the Net Income tab to see monthly operating income by entity.'
 
   const gpNarrative = gp?.current
-    ? `The talent pool closed ${gp.currentLabel} with ${gp.current.on} new placement${gp.current.on === 1 ? '' : 's'} and ${gp.current.off} offboarding${gp.current.off === 1 ? '' : 's'}, a net change of ${gp.current.netCount >= 0 ? '+' : ''}${gp.current.netCount} contractor${Math.abs(gp.current.netCount) === 1 ? '' : 's'}. Net margin won came in at ${fmtMoney(gp.current.net)}${gp.previous ? ` versus ${fmtMoney(gp.previous.net)} in ${gp.previousLabel}` : ''}.`
+    ? `So far in ${gp.currentLabel}, the talent pool has added ${gp.current.on} new placement${gp.current.on === 1 ? '' : 's'} and ${gp.current.off} offboarding${gp.current.off === 1 ? '' : 's'} — a running net change of ${gp.current.netCount >= 0 ? '+' : ''}${gp.current.netCount} contractor${Math.abs(gp.current.netCount) === 1 ? '' : 's'}. Net margin is currently ${fmtMoney(gp.current.net)}${gp.previous ? ` versus ${fmtMoney(gp.previous.net)} in ${gp.previousLabel}` : ''}. Hires and offboardings may still move before month-end.`
     : 'Open the GP Analysis tab to see onboardings, offboardings, and net margin movement.'
 
   // ── Render ───────────────────────────────────────────────────────────────
