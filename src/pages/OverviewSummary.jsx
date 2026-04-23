@@ -98,9 +98,11 @@ function SummaryCard({ eyebrow, headline, subhead, narrative, to, cta, tone = 'i
 }
 
 export default function OverviewSummary() {
-  const { fetchNetIncome, fetchAP } = useDataCache()
+  const { fetchNetIncome, fetchAP, fetchCashflow } = useDataCache()
   const [netIncome, setNetIncome] = useState(null)
   const [cashBalance, setCashBalance] = useState(null)
+  const [outgoingPayments, setOutgoingPayments] = useState([])
+  const [arInvoices, setArInvoices] = useState([])
   const [apInvoices, setApInvoices] = useState([])
   const [talentRows, setTalentRows] = useState(null)
   const [error, setError] = useState(null)
@@ -116,6 +118,10 @@ export default function OverviewSummary() {
       .then((d) => { if (!cancelled && Array.isArray(d)) setApInvoices(d) })
       .catch(() => {})
 
+    fetchCashflow(false)
+      .then((d) => { if (!cancelled && Array.isArray(d)) setArInvoices(d) })
+      .catch(() => {})
+
     if (IS_DEMO || !isSupabaseConfigured()) {
       if (!cancelled) { setCashBalance(null); setTalentRows([]) }
       return () => { cancelled = true }
@@ -123,12 +129,13 @@ export default function OverviewSummary() {
 
     supabase
       .from('cashflow_settings')
-      .select('current_balance')
+      .select('current_balance, outgoing_payments')
       .eq('id', 1)
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled) return
         setCashBalance(Number(data?.current_balance) || 0)
+        setOutgoingPayments(Array.isArray(data?.outgoing_payments) ? data.outgoing_payments : [])
       })
 
     // Pull only the columns we need, and ensure we fetch enough rows to
@@ -141,7 +148,7 @@ export default function OverviewSummary() {
       .then(({ data }) => { if (!cancelled) setTalentRows(data || []) })
 
     return () => { cancelled = true }
-  }, [fetchNetIncome, fetchAP])
+  }, [fetchNetIncome, fetchAP, fetchCashflow])
 
   // ── Derive current / previous month ───────────────────────────────────────
   // The "current month" is today's calendar month (so the Overview reflects
@@ -170,11 +177,11 @@ export default function OverviewSummary() {
   const currentMonthName = longMonthLabel(currentMonth)
 
   // ── Cash position ────────────────────────────────────────────────────────
-  // Pull the next upcoming payroll / payroll-estimate entry from the AP tab.
-  // We always surface the soonest payroll entry regardless of how far away
-  // it is — even if it's past the 14-day window. Matches by scanning the
-  // invoice's description / vendor / category / invoice number for the word
-  // "payroll" (case-insensitive, covers "Payroll Estimate" too).
+  // Find the next payroll/payroll-estimate item in the AP tab, then simulate
+  // the cashflow between today and that payroll's due date (mirroring the
+  // Cashflow Simulator's logic: AR income on due date, overdue AR/AP shifted
+  // +7d, AP outflows on due date, manual outgoing_payments on their date) so
+  // the projected balance matches what the Cashflow tab displays.
   const cash = useMemo(() => {
     if (cashBalance == null) return null
     const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -187,7 +194,8 @@ export default function OverviewSummary() {
       return haystack.includes('payroll')
     }
 
-    const upcomingPayroll = (apInvoices || [])
+    // Find the next payroll AP entry (not PAID/VOID) due on or after today.
+    const payrollCandidates = (apInvoices || [])
       .filter((inv) => {
         const status = String(inv.status || '').toUpperCase()
         if (status === 'PAID' || status === 'VOID') return false
@@ -198,20 +206,75 @@ export default function OverviewSummary() {
         return due >= today && isPayroll(inv)
       })
       .map((inv) => ({
-        _date: inv.dueDate instanceof Date ? inv.dueDate : new Date(inv.dueDate),
+        _date: inv.dueDate instanceof Date ? new Date(inv.dueDate) : new Date(inv.dueDate),
         _amount: Math.abs(Number(inv.amount) || 0),
         description: inv.description || inv.vendor || 'Payroll',
       }))
       .sort((a, b) => a._date - b._date)
 
-    if (upcomingPayroll.length === 0) {
+    if (payrollCandidates.length === 0) {
       return { balance: cashBalance, nextTotal: 0, nextDate: null, projected: null, count: 0 }
     }
+    const next = payrollCandidates[0]
+    next._date.setHours(0, 0, 0, 0)
 
-    const next = upcomingPayroll[0]
-    const projected = cashBalance - next._amount
-    return { balance: cashBalance, nextTotal: next._amount, nextDate: next._date, projected, count: 1, description: next.description }
-  }, [cashBalance, apInvoices])
+    // Build all cashflow events between today and the payroll's due date
+    // (inclusive). This mirrors CashFlowSimulator.jsx.
+    const cutoff = new Date(next._date) // include events on the payroll day
+    const events = []
+
+    // 1. AR invoices → income
+    ;(arInvoices || []).forEach((inv) => {
+      if (!inv || !inv.dueDate) return
+      const due = inv.dueDate instanceof Date ? new Date(inv.dueDate) : new Date(inv.dueDate)
+      if (isNaN(due)) return
+      due.setHours(0, 0, 0, 0)
+      const status = String(inv.status || '').toUpperCase()
+      const isPaid = status === 'PAID' || inv.statusCategory === 'paid'
+      if (isPaid) return
+      const isOverdue = status === 'OVERDUE' || inv.statusCategory === 'overdue'
+      const eventDate = isOverdue ? (() => { const d = new Date(today); d.setDate(today.getDate() + 7); return d })() : due
+      if (eventDate < today || eventDate > cutoff) return
+      events.push({ date: eventDate, amount: Math.abs(Number(inv.amount) || 0) })
+    })
+
+    // 2. AP invoices (APPROVED / OVERDUE) → outgoing
+    ;(apInvoices || []).forEach((inv) => {
+      if (!inv || !inv.dueDate) return
+      const status = String(inv.status || '').toUpperCase()
+      if (status !== 'APPROVED' && status !== 'OVERDUE') return
+      const due = inv.dueDate instanceof Date ? new Date(inv.dueDate) : new Date(inv.dueDate)
+      if (isNaN(due)) return
+      due.setHours(0, 0, 0, 0)
+      const isOverdue = status === 'OVERDUE'
+      const eventDate = isOverdue ? (() => { const d = new Date(today); d.setDate(today.getDate() + 7); return d })() : due
+      if (eventDate < today || eventDate > cutoff) return
+      events.push({ date: eventDate, amount: -Math.abs(Number(inv.amount) || 0) })
+    })
+
+    // 3. Manual outgoing_payments from cashflow_settings
+    ;(outgoingPayments || []).forEach((p) => {
+      if (!p || !p.date || !p.amount) return
+      const [y, m, d] = String(p.date).split('-').map((x) => parseInt(x, 10))
+      if (!y || !m || !d) return
+      const eventDate = new Date(y, m - 1, d); eventDate.setHours(0, 0, 0, 0)
+      if (eventDate < today || eventDate > cutoff) return
+      events.push({ date: eventDate, amount: -Math.abs(parseFloat(p.amount) || 0) })
+    })
+
+    events.sort((a, b) => a.date - b.date)
+    let projected = Number(cashBalance) || 0
+    events.forEach((e) => { projected += e.amount })
+
+    return {
+      balance: cashBalance,
+      nextTotal: next._amount,
+      nextDate: next._date,
+      projected,
+      count: 1,
+      description: next.description,
+    }
+  }, [cashBalance, apInvoices, arInvoices, outgoingPayments])
 
   // ── Net income (MoM) ─────────────────────────────────────────────────────
   const ni = useMemo(() => {
@@ -289,8 +352,8 @@ export default function OverviewSummary() {
   // ── Narratives ───────────────────────────────────────────────────────────
   const cashNarrative = cash
     ? (cash.nextTotal > 0
-        ? `Current bank balance is ${fmtMoney(cash.balance)}. The next payroll item in the AP tab — ${cash.description} — is ${fmtMoney(cash.nextTotal)}${cash.nextDate ? `, due ${fmtDate(cash.nextDate)}` : ''}. Applying that outflow brings the projected balance to ~${fmtMoneyShort(cash.projected)}.`
-        : `Current bank balance is ${fmtMoney(cash.balance)}. No upcoming payroll item found in the AP tab.`)
+        ? `Current bank balance is ${fmtMoney(cash.balance)}. Estimated payroll outflow for the upcoming cycle is approximately ${fmtMoneyShort(cash.nextTotal)}${cash.nextDate ? ` (due ${fmtDate(cash.nextDate)})` : ''}, which would bring the projected balance to ~${fmtMoneyShort(cash.projected)} after that week.`
+        : `Current bank balance is ${fmtMoney(cash.balance)}. No upcoming payroll cycle scheduled.`)
     : 'Open the Cashflow tab to review the current balance and upcoming payroll.'
 
   const niNarrative = ni
