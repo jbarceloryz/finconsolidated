@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { supabase, isSupabaseConfigured } from '../../../lib/supabase'
 
 const PLACEHOLDER = `Situation:
 
@@ -6,38 +7,105 @@ Outlook:
 
 Watch items / Risks: `
 
+const DEBOUNCE_MS = 1200
+
 /**
  * Editable finance-team commentary block for WBR / MBR reports.
  *
- * - Persists text to localStorage keyed by period + report type so drafts
- *   survive page refreshes and are ready the next time the same period is opened.
- * - In screen preview: shows an editable textarea with a subtle edit affordance.
- * - In print (PDF): renders as a clean, visually distinct analyst-note block.
+ * Persistence:
+ *   - Primary store: Supabase `report_notes` table, keyed by (period_label, report_type).
+ *     Schema: id, period_label text, report_type text, body text, updated_at timestamptz.
+ *     Unique constraint on (period_label, report_type) so upsert is safe.
+ *   - Fast-read cache: localStorage mirrors the last known value so the textarea
+ *     populates instantly while the Supabase fetch is in flight, and works offline.
  *
  * Props:
  *   periodLabel  string  e.g. "Apr-26"
  *   reportType   string  "wbr" | "mbr"
  */
 export default function CommentaryBlock({ periodLabel, reportType }) {
-  const storageKey = `ryz_report_note_${reportType}_${periodLabel}`
-  const [text, setText] = useState(() => {
-    try { return localStorage.getItem(storageKey) || '' } catch { return '' }
-  })
-  const [focused, setFocused] = useState(false)
-  const taRef = useRef(null)
+  const cacheKey = `ryz_report_note_${reportType}_${periodLabel}`
 
-  // Re-load if a different period is opened in the same session
+  const [text, setText] = useState(() => {
+    try { return localStorage.getItem(cacheKey) || '' } catch { return '' }
+  })
+  const [status, setStatus] = useState('idle') // 'idle' | 'saving' | 'saved' | 'error'
+  const [focused, setFocused] = useState(false)
+  const debounceRef = useRef(null)
+  const latestText = useRef(text)
+
+  // ── Load from Supabase on mount / period change ──────────────────────────
   useEffect(() => {
-    try { setText(localStorage.getItem(storageKey) || '') } catch { /* ignore */ }
-  }, [storageKey])
+    // Reset to cached value immediately so there's no flicker when switching periods
+    const cached = (() => { try { return localStorage.getItem(cacheKey) || '' } catch { return '' } })()
+    setText(cached)
+    latestText.current = cached
+    setStatus('idle')
+
+    if (!isSupabaseConfigured()) return
+
+    supabase
+      .from('report_notes')
+      .select('body')
+      .eq('period_label', periodLabel)
+      .eq('report_type', reportType)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) { console.warn('CommentaryBlock fetch error:', error); return }
+        const remote = data?.body ?? ''
+        setText(remote)
+        latestText.current = remote
+        try { localStorage.setItem(cacheKey, remote) } catch { /* ignore */ }
+      })
+  }, [cacheKey, periodLabel, reportType])
+
+  // ── Debounced Supabase upsert ────────────────────────────────────────────
+  const saveToSupabase = useCallback((value) => {
+    if (!isSupabaseConfigured()) return
+    setStatus('saving')
+    supabase
+      .from('report_notes')
+      .upsert(
+        { period_label: periodLabel, report_type: reportType, body: value, updated_at: new Date().toISOString() },
+        { onConflict: 'period_label,report_type' }
+      )
+      .then(({ error }) => {
+        if (error) { console.error('CommentaryBlock save error:', error); setStatus('error') }
+        else setStatus('saved')
+      })
+  }, [periodLabel, reportType])
 
   const handleChange = (e) => {
     const v = e.target.value
     setText(v)
-    try { localStorage.setItem(storageKey, v) } catch { /* ignore */ }
+    latestText.current = v
+    try { localStorage.setItem(cacheKey, v) } catch { /* ignore */ }
+
+    // Debounce the remote write
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setStatus('saving')
+    debounceRef.current = setTimeout(() => { saveToSupabase(latestText.current) }, DEBOUNCE_MS)
   }
 
+  // Flush on unmount in case the user closes the modal before the debounce fires
+  useEffect(() => () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+      saveToSupabase(latestText.current)
+    }
+  }, [saveToSupabase])
+
   const isEmpty = text.trim() === ''
+
+  const statusLabel = !isSupabaseConfigured()
+    ? 'local only'
+    : status === 'saving' ? 'saving…'
+    : status === 'saved' ? 'saved'
+    : status === 'error' ? 'save error'
+    : text.length > 0 ? `${text.length} chars`
+    : 'not saved yet'
+
+  const statusColor = status === 'error' ? 'text-rose-400' : status === 'saved' ? 'text-emerald-600' : 'text-slate-400'
 
   return (
     <>
@@ -45,16 +113,15 @@ export default function CommentaryBlock({ periodLabel, reportType }) {
       <div className="print:hidden mb-6">
         <div className="flex items-baseline justify-between mb-1.5">
           <h2 className="text-lg font-semibold text-slate-900">Finance Team Commentary</h2>
-          <span className="text-[10px] text-slate-400 font-mono select-none">
-            {text.length > 0 ? `${text.length} chars · auto-saved` : 'not saved yet'}
+          <span className={`text-[10px] font-mono select-none ${statusColor}`}>
+            {statusLabel}
           </span>
         </div>
         <p className="text-[10.5px] text-slate-500 mb-2 leading-relaxed">
           Write a brief analyst narrative for this period — situation, outlook, and any watch items.
-          This text is saved locally in your browser and will reappear the next time you open this report.
+          Saved to Supabase and shared across all devices.
         </p>
         <textarea
-          ref={taRef}
           value={text}
           onChange={handleChange}
           onFocus={() => setFocused(true)}
