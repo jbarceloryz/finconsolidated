@@ -7,6 +7,7 @@ import {
   computeOverdueInvoices, summarizeGpByClient,
 } from './reportUtils'
 import { supabase, isSupabaseConfigured } from '../../../lib/supabase'
+import CommentaryBlock from './CommentaryBlock'
 
 const _IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
 
@@ -108,6 +109,11 @@ export default function WBRReport({
       <section className="mb-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Current-month forecast — {formatMonthLong(currentMonthLabel)}</h2>
         <PLTable rows={currentPL} />
+      </section>
+
+      {/* Finance Team Commentary */}
+      <section className="mb-6">
+        <CommentaryBlock periodLabel={currentMonthLabel} reportType="wbr" />
       </section>
 
       {/* Financial Analysis narrative */}

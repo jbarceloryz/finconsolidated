@@ -4,6 +4,7 @@ import {
   formatMonthLong, chronologicalMonths,
   valueAt, pctChange, buildMonthlyPL, buildExecutiveNarrative,
 } from './reportUtils'
+import CommentaryBlock from './CommentaryBlock'
 
 const ROW_DEFS = [
   { key: 'totalIncome', label: 'Total Income' },
@@ -99,6 +100,11 @@ export default function MBRReport({
             Operating income for the period: <strong>{opiCurrentLabel}</strong>.
           </li>
         </ul>
+      </section>
+
+      {/* Finance Team Commentary */}
+      <section className="mb-6">
+        <CommentaryBlock periodLabel={currentMonthLabel} reportType="mbr" />
       </section>
 
       {/* Revenue by entity */}
