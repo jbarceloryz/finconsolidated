@@ -112,15 +112,11 @@ export default function CommentaryBlock({ periodLabel, reportType }) {
       {/* ── Screen: editable textarea ───────────────────────── */}
       <div className="print:hidden mb-6">
         <div className="flex items-baseline justify-between mb-1.5">
-          <h2 className="text-lg font-semibold text-slate-900">Finance Team Commentary</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Brief Commentary</h2>
           <span className={`text-[10px] font-mono select-none ${statusColor}`}>
             {statusLabel}
           </span>
         </div>
-        <p className="text-[10.5px] text-slate-500 mb-2 leading-relaxed">
-          Write a brief analyst narrative for this period — situation, outlook, and any watch items.
-          Saved to Supabase and shared across all devices.
-        </p>
         <textarea
           value={text}
           onChange={handleChange}
@@ -144,7 +140,7 @@ export default function CommentaryBlock({ periodLabel, reportType }) {
 
       {/* ── Print: rendered prose block ─────────────────────── */}
       <div className="hidden print:block mb-6">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">Finance Team Commentary</h2>
+        <h2 className="text-lg font-semibold text-slate-900 mb-2">Brief Commentary</h2>
         {isEmpty ? (
           <p className="text-slate-400 italic text-[11px]">No commentary added for this period.</p>
         ) : (
