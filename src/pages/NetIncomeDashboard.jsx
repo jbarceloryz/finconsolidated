@@ -719,24 +719,26 @@ function NetIncomeContent({
         const curLbl = deriveCurrentMonthLabel(months, ys)
         const chrono = chronologicalMonths(months, ys)
         const curIdx = chrono.indexOf(curLbl)
-        const prevLbl = curIdx > 0 ? chrono[curIdx - 1] : chrono[0]
-        const nextLbl = curIdx >= 0 && curIdx < chrono.length - 1 ? chrono[curIdx + 1] : null
+        // MBR is always for the previous month (e.g. in May we generate April's MBR)
+        const mbrIdx = curIdx > 0 ? curIdx - 1 : 0
+        const mbrLbl = chrono[mbrIdx]
+        const prevLbl = mbrIdx > 0 ? chrono[mbrIdx - 1] : chrono[0]
         const reportEntities = TABLE_COLUMNS.filter((c) => metricsByCompany[c.key])
         const hcKey = _IS_DEMO ? (TABLE_COLUMNS.find(c => c.key !== 'CONSOLIDATED') || {}).key : 'Ryz Labs HC LLC'
         return (
           <ReportModal
-            title={`Monthly Business Review — ${formatMonthLong(curLbl)}`}
+            title={`Monthly Business Review — ${formatMonthLong(mbrLbl)}`}
             onClose={() => setActiveReport(null)}
-            filename={`MBR_${curLbl}.pdf`}
+            filename={`MBR_${mbrLbl}.pdf`}
           >
             <MBRReport
               months={months}
               metricsByCompany={metricsByCompany}
               entities={reportEntities}
               hcKey={hcKey}
-              currentMonthLabel={curLbl}
+              currentMonthLabel={mbrLbl}
               previousMonthLabel={prevLbl}
-              nextMonthLabel={nextLbl}
+              nextMonthLabel={curLbl}
               yearSuffix={ys}
             />
           </ReportModal>
