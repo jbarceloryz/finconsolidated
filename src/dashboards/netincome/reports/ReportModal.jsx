@@ -54,6 +54,7 @@ export default function ReportModal({ title, onClose, children, filename }) {
 
     const doc = iframe.contentDocument || iframe.contentWindow.document
     const escapedTitle = (title || 'Report').replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+    const todayLabel = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     doc.open()
     doc.write(`<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>${(filename || title || 'Report').replace(/</g, '&lt;')}</title>
       <style>${styleFragments.join('\n')}</style>
@@ -70,13 +71,16 @@ export default function ReportModal({ title, onClose, children, filename }) {
             font-size: 10pt;
             font-weight: bold;
             color: #000000;
+            border-bottom: 0.5pt solid #000000;
+            padding-bottom: 3pt;
           }
           @top-right {
-            content: "Ryz Holding — consolidated financial report";
+            content: "${todayLabel}";
             font-family: 'Calibri', Arial, sans-serif;
             font-size: 10pt;
-            font-style: italic;
             color: #000000;
+            border-bottom: 0.5pt solid #000000;
+            padding-bottom: 3pt;
           }
           @bottom-left {
             content: "Ryz Labs Confidential";
@@ -102,13 +106,16 @@ export default function ReportModal({ title, onClose, children, filename }) {
             font-size: 10pt;
             font-weight: bold;
             color: #000000;
+            border-bottom: 0.5pt solid #000000;
+            padding-bottom: 3pt;
           }
           @top-right {
-            content: "Ryz Holding — consolidated financial report";
+            content: "${todayLabel}";
             font-family: 'Calibri', Arial, sans-serif;
             font-size: 10pt;
-            font-style: italic;
             color: #000000;
+            border-bottom: 0.5pt solid #000000;
+            padding-bottom: 3pt;
           }
           @bottom-left {
             content: "Ryz Labs Confidential";
