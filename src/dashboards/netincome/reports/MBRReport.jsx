@@ -160,6 +160,17 @@ function Kpi({ label, value, delta }) {
   )
 }
 
+const MONTH_TO_ABBR = {
+  January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr',
+  May: 'May', June: 'Jun', July: 'Jul', August: 'Aug',
+  September: 'Sep', October: 'Oct', November: 'Nov', December: 'Dec',
+}
+function abbrMonth(label) {
+  const [name, yr] = String(label).split('-')
+  const abbr = MONTH_TO_ABBR[name] || name
+  return yr ? `${abbr}-${yr}` : abbr
+}
+
 function MonthlyEntityTable({ rows, totals, yearMonths, totalLabel }) {
   return (
     <div className="overflow-x-auto">
@@ -168,7 +179,7 @@ function MonthlyEntityTable({ rows, totals, yearMonths, totalLabel }) {
           <tr className="bg-slate-100 border-b border-slate-300">
             <th className="text-left py-1.5 px-2 font-semibold text-slate-700">Entity</th>
             {yearMonths.map((m) => (
-              <th key={m} className="text-right py-1.5 px-2 font-semibold text-slate-700">{m}</th>
+              <th key={m} className="text-right py-1.5 px-2 font-semibold text-slate-700">{abbrMonth(m)}</th>
             ))}
           </tr>
         </thead>

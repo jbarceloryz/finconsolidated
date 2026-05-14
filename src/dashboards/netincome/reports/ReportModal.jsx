@@ -96,11 +96,10 @@ export default function ReportModal({ title, onClose, children, filename }) {
           white-space: nowrap;
           word-break: keep-all;
         }
-        /* First column (entity / line item labels) can wrap when needed */
+        /* First column (entity / line item labels) should not wrap */
         #report-root table th:first-child,
         #report-root table td:first-child {
-          white-space: normal;
-          word-break: break-word;
+          white-space: nowrap;
         }
         #report-root .overflow-x-auto { overflow: visible !important; }
       </style>
