@@ -57,23 +57,36 @@ export default function ReportModal({ title, onClose, children, filename }) {
     doc.write(`<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>${(filename || title || 'Report').replace(/</g, '&lt;')}</title>
       <style>${styleFragments.join('\n')}</style>
       <style>
-        html, body { margin: 0; padding: 0; background: #ffffff; color: #0f172a; }
+        html, body { margin: 0; padding: 0; background: #ffffff; }
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .page-break-before { break-before: page; page-break-before: always; }
-        @page { size: A4 landscape; margin: 10mm 8mm; }
-        /* Ensure wide tables fit within the printable area */
-        #report-root { width: 100%; }
+        @page { size: A4 landscape; margin: 12.7mm; }
+        /* Calibri 11pt, black only — no other colors or sizes */
+        #report-root {
+          width: 100%;
+          font-family: 'Calibri', 'Calibri Body', Arial, sans-serif;
+          font-size: 11pt;
+          color: #000000;
+        }
+        #report-root * {
+          font-family: 'Calibri', 'Calibri Body', Arial, sans-serif !important;
+          font-size: 11pt !important;
+          color: #000000 !important;
+          background-color: transparent !important;
+          background-image: none !important;
+        }
+        body { background: #ffffff !important; }
         #report-root table {
           width: 100% !important;
           table-layout: auto !important;
-          font-size: 8.5px !important;
           border-collapse: collapse !important;
         }
         #report-root table th,
         #report-root table td {
-          padding: 3px 4px !important;
+          padding: 3px 6px !important;
           white-space: nowrap;
           word-break: keep-all;
+          border-color: #999999 !important;
         }
         /* First column (entity / line item labels) can wrap when needed */
         #report-root table th:first-child,

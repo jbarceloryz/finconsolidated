@@ -67,6 +67,8 @@ export default function MBRReport({
 
   const bipsDirection = narrative.bipsDelta >= 0 ? 'increase' : 'decrease'
   const bipsAbs = Math.abs(narrative.bipsDelta)
+  const revDeltaDollars = narrative.revCurr - narrative.revPrev
+  const revDeltaDollarsLabel = fmtMoney(Math.abs(revDeltaDollars))
 
   return (
     <div className="p-8 print:p-0 text-[11.5px] leading-snug">
@@ -88,7 +90,7 @@ export default function MBRReport({
         </div>
         <ul className="list-disc pl-5 text-slate-700 space-y-1">
           <li>
-            Total revenue {narrative.revDelta >= 0 ? 'grew' : 'declined'} {fmtPctNoSign(Math.abs(narrative.revDelta), 1)} month-over-month to {revCurrentLabel}, from {revPrevLabel} in {formatMonthLong(previousMonthLabel)}.
+            Total revenue {narrative.revDelta >= 0 ? 'grew' : 'declined'} {fmtPctNoSign(Math.abs(narrative.revDelta), 1)} ({narrative.revDelta >= 0 ? '+' : '-'}{revDeltaDollarsLabel}) month-over-month to {revCurrentLabel}, from {revPrevLabel} in {formatMonthLong(previousMonthLabel)}.
           </li>
           <li>
             HC remained the dominant revenue driver at {fmtPctNoSign(narrative.hcShare, 1)} of total revenue with {hcCurrentLabel}, {narrative.hcDelta >= 0 ? 'up' : 'down'} {fmtPctNoSign(Math.abs(narrative.hcDelta), 1)} from {hcPrevLabel} last month.

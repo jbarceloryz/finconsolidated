@@ -24,7 +24,7 @@ const TABLE_COLUMNS_REAL = [
   { key: 'Hip Train Inc', label: 'Hiptrain' },
   { key: 'Offsiteio Inc', label: 'Offsiteio' },
   { key: 'Ryz Labs Studio LLC', label: 'Studio' },
-  { key: 'Studio INC (Ntrvsta)', label: 'Ntrvsta' },
+  { key: 'Ntrvsta', label: 'Ntrvsta' },
   { key: 'CONSOLIDATED', label: 'Total' },
 ]
 

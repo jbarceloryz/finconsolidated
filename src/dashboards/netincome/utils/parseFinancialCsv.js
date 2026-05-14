@@ -33,7 +33,7 @@ const COMPANY_HEADERS = [
   'Ryz Labs HC LLC',
   'Offsiteio Inc',
   'Ryz Labs Studio LLC',
-  'Ntrvsta',
+  'Studio INC (Ntrvsta)',
   'Hip Train Inc',
   'Ryz Labs LLC',
 ];
@@ -101,7 +101,8 @@ export function parseFinancialCsv(csvText) {
     const second = (cells[1] || '').trim();
 
     if (COMPANY_HEADERS.includes(second)) {
-      currentCompany = second;
+      // Normalize the CSV header to match the Supabase company key
+      currentCompany = second === 'Studio INC (Ntrvsta)' ? 'Ntrvsta' : second;
       continue;
     }
 
