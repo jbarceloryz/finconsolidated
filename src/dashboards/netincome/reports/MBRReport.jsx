@@ -72,13 +72,6 @@ export default function MBRReport({
 
   return (
     <div className="p-8 print:p-0 text-[11.5px] leading-snug">
-      {/* Cover */}
-      <section className="pb-5 border-b border-slate-300 mb-5">
-        <p className="text-xs uppercase tracking-widest text-emerald-700 font-semibold">Monthly Business Review</p>
-        <h1 className="text-3xl font-bold text-slate-900 mt-1">{formatMonthLong(currentMonthLabel)}</h1>
-        <p className="text-slate-600 mt-1">Ryz Holding — consolidated financial report</p>
-      </section>
-
       {/* Executive Summary */}
       <section className="mb-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Executive Summary</h2>

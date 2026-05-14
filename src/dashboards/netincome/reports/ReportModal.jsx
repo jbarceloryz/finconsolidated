@@ -53,6 +53,7 @@ export default function ReportModal({ title, onClose, children, filename }) {
     document.body.appendChild(iframe)
 
     const doc = iframe.contentDocument || iframe.contentWindow.document
+    const escapedTitle = (title || 'Report').replace(/\\/g, '\\\\').replace(/"/g, '\\"')
     doc.open()
     doc.write(`<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>${(filename || title || 'Report').replace(/</g, '&lt;')}</title>
       <style>${styleFragments.join('\n')}</style>
@@ -64,7 +65,14 @@ export default function ReportModal({ title, onClose, children, filename }) {
           size: A4 portrait;
           margin: 18mm 12.7mm 18mm 12.7mm;
           @top-left {
-            content: "Finance Consolidated — Monthly Business Review";
+            content: "${escapedTitle}";
+            font-family: 'Calibri', Arial, sans-serif;
+            font-size: 10pt;
+            font-weight: bold;
+            color: #000000;
+          }
+          @top-right {
+            content: "Ryz Holding — consolidated financial report";
             font-family: 'Calibri', Arial, sans-serif;
             font-size: 10pt;
             font-style: italic;
@@ -89,7 +97,14 @@ export default function ReportModal({ title, onClose, children, filename }) {
           size: A4 landscape;
           margin: 18mm 12.7mm 18mm 12.7mm;
           @top-left {
-            content: "Finance Consolidated — Monthly Business Review";
+            content: "${escapedTitle}";
+            font-family: 'Calibri', Arial, sans-serif;
+            font-size: 10pt;
+            font-weight: bold;
+            color: #000000;
+          }
+          @top-right {
+            content: "Ryz Holding — consolidated financial report";
             font-family: 'Calibri', Arial, sans-serif;
             font-size: 10pt;
             font-style: italic;
