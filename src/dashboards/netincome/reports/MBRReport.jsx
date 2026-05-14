@@ -82,12 +82,9 @@ export default function MBRReport({
       {/* Executive Summary */}
       <section className="mb-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Executive Summary</h2>
-        <div className="grid grid-cols-4 gap-3 mb-3">
-          <Kpi label="Revenue" value={revCurrentLabel} delta={fmtPct(narrative.revDelta, 1)} />
-          <Kpi label="Gross Profit" value={gpCurrentLabel} delta={`${gmCurrentLabel} GM`} />
-          <Kpi label="Operating Income" value={opiCurrentLabel} />
-          <Kpi label={`HC share`} value={fmtPctNoSign(narrative.hcShare, 1)} delta={fmtPct(narrative.hcDelta, 1) + ' MoM'} />
-        </div>
+        <p className="mb-3">
+          <strong>Revenue:</strong> {revCurrentLabel} ({fmtPct(narrative.revDelta, 1)} MoM) &nbsp;&middot;&nbsp; <strong>Gross Profit:</strong> {gpCurrentLabel} ({gmCurrentLabel} GM) &nbsp;&middot;&nbsp; <strong>Operating Income:</strong> {opiCurrentLabel} &nbsp;&middot;&nbsp; <strong>HC Share:</strong> {fmtPctNoSign(narrative.hcShare, 1)} ({fmtPct(narrative.hcDelta, 1)} MoM)
+        </p>
         <ul className="list-disc pl-5 text-slate-700 space-y-1">
           <li>
             Total revenue {narrative.revDelta >= 0 ? 'grew' : 'declined'} {fmtPctNoSign(Math.abs(narrative.revDelta), 1)} ({narrative.revDelta >= 0 ? '+' : '-'}{revDeltaDollarsLabel}) month-over-month to {revCurrentLabel}, from {revPrevLabel} in {formatMonthLong(previousMonthLabel)}.
@@ -110,7 +107,7 @@ export default function MBRReport({
       </section>
 
       {/* Revenue by entity */}
-      <section className="mb-6">
+      <section className="mb-6 report-landscape">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Revenue by entity — {yearSuffix === '26' ? '2026' : `20${yearSuffix}`}</h2>
         <MonthlyEntityTable
           rows={revenueMatrix}
@@ -121,7 +118,7 @@ export default function MBRReport({
       </section>
 
       {/* COGS by entity */}
-      <section className="mb-6">
+      <section className="mb-6 report-landscape">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">COGS by entity — {yearSuffix === '26' ? '2026' : `20${yearSuffix}`}</h2>
         <MonthlyEntityTable
           rows={cogsMatrix}
@@ -132,14 +129,14 @@ export default function MBRReport({
       </section>
 
       {/* P&L for current month */}
-      <section className="mb-6 page-break-before">
+      <section className="mb-6 report-landscape">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">P&amp;L by entity — {formatMonthLong(currentMonthLabel)}</h2>
         <PLTable rows={currentPL} />
       </section>
 
       {/* Projection for next month if available */}
       {nextMonthLabel && nextPL && (
-        <section className="mb-6">
+        <section className="mb-6 report-landscape">
           <h2 className="text-lg font-semibold text-slate-900 mb-2">Next-month projection — {formatMonthLong(nextMonthLabel)}</h2>
           <PLTable rows={nextPL} />
           <p className="text-xs text-slate-500 mt-2">Projection derived from the same forecast data shown on the Net Income dashboard.</p>

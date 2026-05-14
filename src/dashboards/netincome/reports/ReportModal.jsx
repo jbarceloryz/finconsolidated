@@ -59,8 +59,16 @@ export default function ReportModal({ title, onClose, children, filename }) {
       <style>
         html, body { margin: 0; padding: 0; background: #ffffff; }
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        /* Default page: portrait */
+        @page { size: A4 portrait; margin: 12.7mm; }
+        /* Named page for wide tables: landscape */
+        @page landscape-table { size: A4 landscape; margin: 12.7mm; }
+        .report-landscape {
+          page: landscape-table;
+          break-before: page;
+          break-after: page;
+        }
         .page-break-before { break-before: page; page-break-before: always; }
-        @page { size: A4 landscape; margin: 12.7mm; }
         /* Calibri 11pt, black only — no other colors or sizes */
         #report-root {
           width: 100%;
@@ -74,6 +82,7 @@ export default function ReportModal({ title, onClose, children, filename }) {
           color: #000000 !important;
           background-color: transparent !important;
           background-image: none !important;
+          border-color: #000000 !important;
         }
         body { background: #ffffff !important; }
         #report-root table {
@@ -86,7 +95,6 @@ export default function ReportModal({ title, onClose, children, filename }) {
           padding: 3px 6px !important;
           white-space: nowrap;
           word-break: keep-all;
-          border-color: #999999 !important;
         }
         /* First column (entity / line item labels) can wrap when needed */
         #report-root table th:first-child,

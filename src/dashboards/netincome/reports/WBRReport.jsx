@@ -106,7 +106,7 @@ export default function WBRReport({
       </section>
 
       {/* Forecast / Current month P&L */}
-      <section className="mb-6">
+      <section className="mb-6 report-landscape">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Current-month forecast — {formatMonthLong(currentMonthLabel)}</h2>
         <PLTable rows={currentPL} />
       </section>
@@ -120,12 +120,9 @@ export default function WBRReport({
       <section className="mb-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Financial Analysis</h2>
 
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          <Kpi label="Revenue" value={fmtMoney(revCurr)} delta={fmtPct(narrative.revDelta, 1) + ' MoM'} />
-          <Kpi label="Gross Profit" value={fmtMoney(gpCurr)} delta={`${fmtPctNoSign(gmCurr)} margin`} />
-          <Kpi label="Operating Income" value={fmtMoney(opiCurr)} delta={`${fmtMoney(opiDelta)} MoM`} />
-          <Kpi label="Overdue AR" value={fmtMoney(overdueTotal)} delta={`${overdue.length} invoices`} />
-        </div>
+        <p className="mb-4">
+          <strong>Revenue:</strong> {fmtMoney(revCurr)} ({fmtPct(narrative.revDelta, 1)} MoM) &nbsp;&middot;&nbsp; <strong>Gross Profit:</strong> {fmtMoney(gpCurr)} ({fmtPctNoSign(gmCurr)} margin) &nbsp;&middot;&nbsp; <strong>Operating Income:</strong> {fmtMoney(opiCurr)} ({fmtMoney(opiDelta)} MoM) &nbsp;&middot;&nbsp; <strong>Overdue AR:</strong> {fmtMoney(overdueTotal)} ({overdue.length} invoices)
+        </p>
 
         <div className="space-y-2 text-slate-700">
           <p>
@@ -144,7 +141,7 @@ export default function WBRReport({
       </section>
 
       {/* Month-over-month compare */}
-      <section className="mb-6 page-break-before">
+      <section className="mb-6 report-landscape">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">P&amp;L comparison — {formatMonthLong(previousMonthLabel)} vs. {formatMonthLong(currentMonthLabel)}</h2>
         <MoMTable
           label1={formatMonthLong(previousMonthLabel)}
@@ -158,14 +155,14 @@ export default function WBRReport({
 
       {/* Next-month forecast */}
       {nextMonthLabel && nextPL && (
-        <section className="mb-6">
+        <section className="mb-6 report-landscape">
           <h2 className="text-lg font-semibold text-slate-900 mb-2">Next-month forecast — {formatMonthLong(nextMonthLabel)}</h2>
           <PLTable rows={nextPL} />
         </section>
       )}
 
       {/* Overdue AR */}
-      <section className="mb-6">
+      <section className="mb-6 report-landscape">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">AR — Overdue invoices</h2>
         {overdue.length === 0 ? (
           <p className="text-slate-600 italic">No overdue invoices.</p>
@@ -207,7 +204,7 @@ export default function WBRReport({
       </section>
 
       {/* Operational metrics: GP per client */}
-      <section className="mb-6 page-break-before">
+      <section className="mb-6 report-landscape">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Operational metrics — Gross Margin per placement by client</h2>
         {talentLoading ? (
           <p className="text-slate-500 italic">Loading talent pool data...</p>
