@@ -66,7 +66,6 @@ export default function ReportModal({ title, onClose, children, filename }) {
         .report-landscape {
           page: landscape-table;
           break-before: page;
-          break-after: page;
         }
         .page-break-before { break-before: page; page-break-before: always; }
         /* Calibri 11pt, black only — no other colors or sizes */

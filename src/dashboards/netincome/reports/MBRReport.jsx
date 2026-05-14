@@ -106,46 +106,45 @@ export default function MBRReport({
         <CommentaryBlock periodLabel={currentMonthLabel} reportType="mbr" />
       </section>
 
-      {/* Revenue by entity */}
-      <section className="mb-6 report-landscape">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">Revenue by entity — {yearSuffix === '26' ? '2026' : `20${yearSuffix}`}</h2>
-        <MonthlyEntityTable
-          rows={revenueMatrix}
-          totals={revenueTotals}
-          yearMonths={yearMonths}
-          totalLabel="Total"
-        />
-      </section>
-
-      {/* COGS by entity */}
-      <section className="mb-6 report-landscape">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">COGS by entity — {yearSuffix === '26' ? '2026' : `20${yearSuffix}`}</h2>
-        <MonthlyEntityTable
-          rows={cogsMatrix}
-          totals={cogsTotals}
-          yearMonths={yearMonths}
-          totalLabel="Total"
-        />
-      </section>
-
-      {/* P&L for current month */}
-      <section className="mb-6 report-landscape">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">P&amp;L by entity — {formatMonthLong(currentMonthLabel)}</h2>
-        <PLTable rows={currentPL} />
-      </section>
-
-      {/* Projection for next month if available */}
-      {nextMonthLabel && nextPL && (
-        <section className="mb-6 report-landscape">
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">Next-month projection — {formatMonthLong(nextMonthLabel)}</h2>
-          <PLTable rows={nextPL} />
-          <p className="text-xs text-slate-500 mt-2">Projection derived from the same forecast data shown on the Net Income dashboard.</p>
+      {/* Revenue + COGS — landscape page 1 */}
+      <div className="report-landscape">
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Revenue by entity — {yearSuffix === '26' ? '2026' : `20${yearSuffix}`}</h2>
+          <MonthlyEntityTable
+            rows={revenueMatrix}
+            totals={revenueTotals}
+            yearMonths={yearMonths}
+            totalLabel="Total"
+          />
         </section>
-      )}
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">COGS by entity — {yearSuffix === '26' ? '2026' : `20${yearSuffix}`}</h2>
+          <MonthlyEntityTable
+            rows={cogsMatrix}
+            totals={cogsTotals}
+            yearMonths={yearMonths}
+            totalLabel="Total"
+          />
+        </section>
+      </div>
 
-      <footer className="pt-3 border-t border-slate-300 text-[10px] text-slate-500 mt-6">
-        Confidential — Ryz Labs — generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-      </footer>
+      {/* P&L + Projection — landscape page 2 */}
+      <div className="report-landscape">
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">P&amp;L by entity — {formatMonthLong(currentMonthLabel)}</h2>
+          <PLTable rows={currentPL} />
+        </section>
+        {nextMonthLabel && nextPL && (
+          <section className="mb-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">Next-month projection — {formatMonthLong(nextMonthLabel)}</h2>
+            <PLTable rows={nextPL} />
+            <p className="text-xs text-slate-500 mt-2">Projection derived from the same forecast data shown on the Net Income dashboard.</p>
+          </section>
+        )}
+        <footer className="pt-3 border-t border-slate-300 text-[10px] text-slate-500 mt-6">
+          Confidential — Ryz Labs — generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </footer>
+      </div>
     </div>
   )
 }
