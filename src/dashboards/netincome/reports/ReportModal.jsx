@@ -59,10 +59,56 @@ export default function ReportModal({ title, onClose, children, filename }) {
       <style>
         html, body { margin: 0; padding: 0; background: #ffffff; }
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        /* Default page: portrait */
-        @page { size: A4 portrait; margin: 12.7mm; }
-        /* Named page for wide tables: landscape */
-        @page landscape-table { size: A4 landscape; margin: 12.7mm; }
+        /* Default page: portrait — with running header + footer */
+        @page {
+          size: A4 portrait;
+          margin: 18mm 12.7mm 18mm 12.7mm;
+          @top-left {
+            content: "Finance Consolidated — Monthly Business Review";
+            font-family: 'Calibri', Arial, sans-serif;
+            font-size: 10pt;
+            font-style: italic;
+            color: #000000;
+          }
+          @bottom-left {
+            content: "Ryz Labs Confidential";
+            font-family: 'Calibri', Arial, sans-serif;
+            font-size: 10pt;
+            font-style: italic;
+            color: #000000;
+          }
+          @bottom-right {
+            content: counter(page);
+            font-family: 'Calibri', Arial, sans-serif;
+            font-size: 10pt;
+            color: #000000;
+          }
+        }
+        /* Named page for wide tables: landscape — same header/footer */
+        @page landscape-table {
+          size: A4 landscape;
+          margin: 18mm 12.7mm 18mm 12.7mm;
+          @top-left {
+            content: "Finance Consolidated — Monthly Business Review";
+            font-family: 'Calibri', Arial, sans-serif;
+            font-size: 10pt;
+            font-style: italic;
+            color: #000000;
+          }
+          @bottom-left {
+            content: "Ryz Labs Confidential";
+            font-family: 'Calibri', Arial, sans-serif;
+            font-size: 10pt;
+            font-style: italic;
+            color: #000000;
+          }
+          @bottom-right {
+            content: counter(page);
+            font-family: 'Calibri', Arial, sans-serif;
+            font-size: 10pt;
+            color: #000000;
+          }
+        }
         .report-landscape {
           page: landscape-table;
           break-before: page;

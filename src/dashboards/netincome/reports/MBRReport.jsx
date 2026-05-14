@@ -141,9 +141,6 @@ export default function MBRReport({
             <p className="text-xs text-slate-500 mt-2">Projection derived from the same forecast data shown on the Net Income dashboard.</p>
           </section>
         )}
-        <footer className="pt-3 border-t border-slate-300 text-[10px] text-slate-500 mt-6">
-          Confidential — Ryz Labs — generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-        </footer>
       </div>
     </div>
   )
