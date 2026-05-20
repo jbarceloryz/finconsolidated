@@ -98,33 +98,13 @@ export default function WBRReport({
 
   return (
     <div className="p-8 print:p-0 text-[11.5px] leading-snug">
-      {/* Cover */}
-      <section className="pb-5 border-b border-slate-300 mb-5">
-        <p className="text-xs uppercase tracking-widest text-emerald-700 font-semibold">Weekly Business Review</p>
-        <h1 className="text-3xl font-bold text-slate-900 mt-1">{formatMonthLong(currentMonthLabel)}</h1>
-        <p className="text-slate-600 mt-1">Ryz Holding — weekly forecast and operational metrics</p>
-      </section>
-
-      {/* Forecast / Current month P&L */}
-      <section className="mb-6 report-landscape">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">Current-month forecast — {formatMonthLong(currentMonthLabel)}</h2>
-        <PLTable rows={currentPL} />
-      </section>
-
-      {/* Finance Team Commentary */}
+      {/* Executive Summary + Commentary + Financial Analysis — portrait page 1 */}
       <section className="mb-6">
-        <CommentaryBlock periodLabel={currentMonthLabel} reportType="wbr" />
-      </section>
-
-      {/* Financial Analysis narrative */}
-      <section className="mb-6">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">Financial Analysis</h2>
-
-        <p className="mb-4">
+        <h2 className="text-lg font-semibold text-slate-900 mb-2">Executive Summary</h2>
+        <p className="mb-3">
           <strong>Revenue:</strong> {fmtMoney(revCurr)} ({fmtPct(narrative.revDelta, 1)} MoM) &nbsp;&middot;&nbsp; <strong>Gross Profit:</strong> {fmtMoney(gpCurr)} ({fmtPctNoSign(gmCurr)} margin) &nbsp;&middot;&nbsp; <strong>Operating Income:</strong> {fmtMoney(opiCurr)} ({fmtMoney(opiDelta)} MoM) &nbsp;&middot;&nbsp; <strong>Overdue AR:</strong> {fmtMoney(overdueTotal)} ({overdue.length} invoices)
         </p>
-
-        <div className="space-y-2 text-slate-700">
+        <div className="space-y-1.5 text-slate-700">
           <p>
             <strong>Cost of goods sold:</strong> total COGS of {fmtMoney(totalCogsCurr)} represents {fmtPctNoSign(cogsPctOfRev)} of revenue.
           </p>
@@ -140,108 +120,116 @@ export default function WBRReport({
         </div>
       </section>
 
-      {/* Month-over-month compare */}
-      <section className="mb-6 report-landscape">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">P&amp;L comparison — {formatMonthLong(previousMonthLabel)} vs. {formatMonthLong(currentMonthLabel)}</h2>
-        <MoMTable
-          label1={formatMonthLong(previousMonthLabel)}
-          label2={formatMonthLong(currentMonthLabel)}
-          metricsByCompany={metricsByCompany}
-          months={months}
-          left={previousMonthLabel}
-          right={currentMonthLabel}
-        />
+      <section className="mb-6">
+        <CommentaryBlock periodLabel={currentMonthLabel} reportType="wbr" />
       </section>
 
-      {/* Next-month forecast */}
-      {nextMonthLabel && nextPL && (
-        <section className="mb-6 report-landscape">
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">Next-month forecast — {formatMonthLong(nextMonthLabel)}</h2>
-          <PLTable rows={nextPL} />
+      {/* Current-month P&L + MoM comparison — landscape page 1 */}
+      <div className="report-landscape">
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Current-month forecast — {formatMonthLong(currentMonthLabel)}</h2>
+          <PLTable rows={currentPL} />
         </section>
-      )}
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">P&amp;L comparison — {formatMonthLong(previousMonthLabel)} vs. {formatMonthLong(currentMonthLabel)}</h2>
+          <MoMTable
+            label1={formatMonthLong(previousMonthLabel)}
+            label2={formatMonthLong(currentMonthLabel)}
+            metricsByCompany={metricsByCompany}
+            months={months}
+            left={previousMonthLabel}
+            right={currentMonthLabel}
+          />
+        </section>
+      </div>
 
-      {/* Overdue AR */}
-      <section className="mb-6 report-landscape">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">AR — Overdue invoices</h2>
-        {overdue.length === 0 ? (
-          <p className="text-slate-600 italic">No overdue invoices.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[11px]">
-              <thead>
-                <tr className="bg-slate-100 border-b border-slate-300">
-                  <th className="text-left py-2 px-2 font-semibold text-slate-700">Customer</th>
-                  <th className="text-right py-2 px-2 font-semibold text-slate-700">Amount</th>
-                  <th className="text-left py-2 px-2 font-semibold text-slate-700">Due date</th>
-                  <th className="text-right py-2 px-2 font-semibold text-slate-700">Days overdue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {overdue.slice(0, 30).map((inv, i) => {
-                  const due = inv.dueDate instanceof Date ? inv.dueDate : new Date(inv.dueDate)
-                  const today = new Date(); today.setHours(0,0,0,0)
-                  const days = Math.floor((today - due) / (1000 * 60 * 60 * 24))
-                  return (
-                    <tr key={i} className="border-b border-slate-200">
-                      <td className="py-1.5 px-2 text-slate-800">{inv.client}</td>
-                      <td className="text-right py-1.5 px-2 tabular-nums text-slate-800">{fmtMoney(inv.amount)}</td>
-                      <td className="py-1.5 px-2 text-slate-700">{due.toLocaleDateString('en-US')}</td>
-                      <td className={`text-right py-1.5 px-2 tabular-nums font-medium ${days > 30 ? 'text-rose-700' : days > 14 ? 'text-amber-700' : 'text-slate-700'}`}>{days}</td>
-                    </tr>
-                  )
-                })}
-                <tr className="bg-slate-50 border-t-2 border-slate-400">
-                  <td className="py-1.5 px-2 font-semibold text-slate-900">Total ({overdue.length})</td>
-                  <td className="text-right py-1.5 px-2 font-semibold text-slate-900 tabular-nums">{fmtMoney(overdueTotal)}</td>
-                  <td colSpan={2} />
-                </tr>
-              </tbody>
-            </table>
-            {overdue.length > 30 && <p className="text-xs text-slate-500 mt-2">Showing top 30 of {overdue.length} overdue invoices.</p>}
-          </div>
+      {/* Next-month forecast + Overdue AR — landscape page 2 */}
+      <div className="report-landscape">
+        {nextMonthLabel && nextPL && (
+          <section className="mb-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">Next-month forecast — {formatMonthLong(nextMonthLabel)}</h2>
+            <PLTable rows={nextPL} />
+          </section>
         )}
-      </section>
-
-      {/* Operational metrics: GP per client */}
-      <section className="mb-6 report-landscape">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">Operational metrics — Gross Margin per placement by client</h2>
-        {talentLoading ? (
-          <p className="text-slate-500 italic">Loading talent pool data...</p>
-        ) : gpByClient.length === 0 ? (
-          <p className="text-slate-600 italic">Talent pool data unavailable.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[11px]">
-              <thead>
-                <tr className="bg-slate-100 border-b border-slate-300">
-                  <th className="text-left py-2 px-2 font-semibold text-slate-700">Company</th>
-                  <th className="text-right py-2 px-2 font-semibold text-slate-700">Placements</th>
-                  <th className="text-right py-2 px-2 font-semibold text-slate-700">Avg. GM per placement</th>
-                  <th className="text-right py-2 px-2 font-semibold text-slate-700">Avg. GM (USD)</th>
-                  <th className="text-right py-2 px-2 font-semibold text-slate-700">Median GM (USD)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {gpByClient.map((row, i) => (
-                  <tr key={i} className={`border-b border-slate-200 ${row.isTotal ? 'bg-slate-50 border-t-2 border-slate-400 font-semibold' : ''}`}>
-                    <td className="py-1.5 px-2 text-slate-800">{row.company}</td>
-                    <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{row.placements}</td>
-                    <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{fmtPctNoSign(row.avgGpPct)}</td>
-                    <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{fmtMoney(row.avgGp)}</td>
-                    <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{row.medianGp !== null ? fmtMoney(row.medianGp) : '—'}</td>
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">AR — Overdue invoices</h2>
+          {overdue.length === 0 ? (
+            <p className="text-slate-600 italic">No overdue invoices.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-[11px]">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-300">
+                    <th className="text-left py-2 px-2 font-semibold text-slate-700">Customer</th>
+                    <th className="text-right py-2 px-2 font-semibold text-slate-700">Amount</th>
+                    <th className="text-left py-2 px-2 font-semibold text-slate-700">Due date</th>
+                    <th className="text-right py-2 px-2 font-semibold text-slate-700">Days overdue</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="text-xs text-slate-500 mt-2">Monthly contractors only. Data sourced from the GP Analysis talent pool.</p>
-          </div>
-        )}
-      </section>
+                </thead>
+                <tbody>
+                  {overdue.slice(0, 30).map((inv, i) => {
+                    const due = inv.dueDate instanceof Date ? inv.dueDate : new Date(inv.dueDate)
+                    const today = new Date(); today.setHours(0,0,0,0)
+                    const days = Math.floor((today - due) / (1000 * 60 * 60 * 24))
+                    return (
+                      <tr key={i} className="border-b border-slate-200">
+                        <td className="py-1.5 px-2 text-slate-800">{inv.client}</td>
+                        <td className="text-right py-1.5 px-2 tabular-nums text-slate-800">{fmtMoney(inv.amount)}</td>
+                        <td className="py-1.5 px-2 text-slate-700">{due.toLocaleDateString('en-US')}</td>
+                        <td className={`text-right py-1.5 px-2 tabular-nums font-medium ${days > 30 ? 'text-rose-700' : days > 14 ? 'text-amber-700' : 'text-slate-700'}`}>{days}</td>
+                      </tr>
+                    )
+                  })}
+                  <tr className="bg-slate-50 border-t-2 border-slate-400">
+                    <td className="py-1.5 px-2 font-semibold text-slate-900">Total ({overdue.length})</td>
+                    <td className="text-right py-1.5 px-2 font-semibold text-slate-900 tabular-nums">{fmtMoney(overdueTotal)}</td>
+                    <td colSpan={2} />
+                  </tr>
+                </tbody>
+              </table>
+              {overdue.length > 30 && <p className="text-xs text-slate-500 mt-2">Showing top 30 of {overdue.length} overdue invoices.</p>}
+            </div>
+          )}
+        </section>
+      </div>
 
-      <footer className="pt-3 border-t border-slate-300 text-[10px] text-slate-500 mt-6">
-        Confidential — Ryz Labs — generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-      </footer>
+      {/* GP per client — landscape page 3 */}
+      <div className="report-landscape">
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Operational metrics — Gross Margin per placement by client</h2>
+          {talentLoading ? (
+            <p className="text-slate-500 italic">Loading talent pool data...</p>
+          ) : gpByClient.length === 0 ? (
+            <p className="text-slate-600 italic">Talent pool data unavailable.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-[11px]">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-300">
+                    <th className="text-left py-2 px-2 font-semibold text-slate-700">Company</th>
+                    <th className="text-right py-2 px-2 font-semibold text-slate-700">Placements</th>
+                    <th className="text-right py-2 px-2 font-semibold text-slate-700">Avg. GM per placement</th>
+                    <th className="text-right py-2 px-2 font-semibold text-slate-700">Avg. GM (USD)</th>
+                    <th className="text-right py-2 px-2 font-semibold text-slate-700">Median GM (USD)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gpByClient.map((row, i) => (
+                    <tr key={i} className={`border-b border-slate-200 ${row.isTotal ? 'bg-slate-50 border-t-2 border-slate-400 font-semibold' : ''}`}>
+                      <td className="py-1.5 px-2 text-slate-800">{row.company}</td>
+                      <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{row.placements}</td>
+                      <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{fmtPctNoSign(row.avgGpPct)}</td>
+                      <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{fmtMoney(row.avgGp)}</td>
+                      <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{row.medianGp !== null ? fmtMoney(row.medianGp) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-xs text-slate-500 mt-2">Monthly contractors only. Data sourced from the GP Analysis talent pool.</p>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   )
 }
