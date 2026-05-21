@@ -93,6 +93,7 @@ export default function WBRReport({
   const expBipsChange = Math.round((expPctOfRev - expPctOfRevPrev) * 100)
   const opiPrev = valueAt(metricsByCompany, 'CONSOLIDATED', 'operatingIncome', months, previousMonthLabel)
   const opiDelta = opiCurr - opiPrev
+  const opiPctDelta = pctChange(opiCurr, opiPrev)
 
   const hcKeyLabel = _IS_DEMO ? hcKey : 'HC'
 
@@ -102,7 +103,7 @@ export default function WBRReport({
       <section className="mb-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Executive Summary</h2>
         <p className="mb-3">
-          <strong>Revenue:</strong> {fmtMoney(revCurr)} ({fmtPct(narrative.revDelta, 1)} MoM) &nbsp;&middot;&nbsp; <strong>Gross Profit:</strong> {fmtMoney(gpCurr)} ({fmtPctNoSign(gmCurr)} margin) &nbsp;&middot;&nbsp; <strong>Operating Income:</strong> {fmtMoney(opiCurr)} ({fmtMoney(opiDelta)} MoM) &nbsp;&middot;&nbsp; <strong>Overdue AR:</strong> {fmtMoney(overdueTotal)} ({overdue.length} invoices)
+          <strong>Revenue:</strong> {fmtMoney(revCurr)} ({fmtPct(narrative.revDelta, 1)} MoM) &nbsp;&middot;&nbsp; <strong>Gross Profit:</strong> {fmtMoney(gpCurr)} ({fmtPctNoSign(gmCurr)} margin) &nbsp;&middot;&nbsp; <strong>Operating Income:</strong> {fmtMoney(opiCurr)} ({fmtPct(opiPctDelta, 1)} MoM, {opiDelta >= 0 ? '+' : '-'}{fmtMoney(Math.abs(opiDelta))}) &nbsp;&middot;&nbsp; <strong>Overdue AR:</strong> {fmtMoney(overdueTotal)} ({overdue.length} invoices)
         </p>
         <div className="space-y-1.5 text-slate-700">
           <p>
@@ -115,7 +116,7 @@ export default function WBRReport({
             <strong>Expenses:</strong> estimated expenses of {fmtMoney(totalExpCurr)} ({fmtPctNoSign(expPctOfRev)} of revenue). Exp/Rev {expBipsChange >= 0 ? 'increased' : 'decreased'} {Math.abs(expBipsChange)} bips vs. last month.
           </p>
           <p>
-            <strong>Net Income:</strong> operating income of {fmtMoney(opiCurr)} — {opiDelta >= 0 ? 'an increase' : 'a decrease'} of {fmtMoney(Math.abs(opiDelta))} vs. {formatMonthLong(previousMonthLabel)} ({fmtMoney(opiPrev)}).
+            <strong>Net Income:</strong> operating income of {fmtMoney(opiCurr)} — {opiDelta >= 0 ? 'an increase' : 'a decrease'} of {fmtMoney(Math.abs(opiDelta))} ({fmtPct(opiPctDelta, 1)} MoM) vs. {formatMonthLong(previousMonthLabel)} ({fmtMoney(opiPrev)}).
           </p>
         </div>
       </section>

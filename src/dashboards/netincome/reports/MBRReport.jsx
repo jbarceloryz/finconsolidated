@@ -70,6 +70,13 @@ export default function MBRReport({
   const revDeltaDollars = narrative.revCurr - narrative.revPrev
   const revDeltaDollarsLabel = fmtMoney(Math.abs(revDeltaDollars))
 
+  // Operating income MoM (both $ and %), to mirror the revenue treatment
+  const opiPrev = valueAt(metricsByCompany, 'CONSOLIDATED', 'operatingIncome', months, previousMonthLabel)
+  const opiDeltaDollars = narrative.opiCurr - opiPrev
+  const opiDeltaDollarsLabel = fmtMoney(Math.abs(opiDeltaDollars))
+  const opiPctDelta = pctChange(narrative.opiCurr, opiPrev)
+  const opiPrevLabel = fmtMoney(opiPrev)
+
   return (
     <div className="p-8 print:p-0 text-[11.5px] leading-snug">
       {/* Executive Summary */}
@@ -89,7 +96,7 @@ export default function MBRReport({
             Gross margin was {gmCurrentLabel}, a {bipsAbs} bips {bipsDirection} vs. {fmtPctNoSign(narrative.gmPrev)} last month.
           </li>
           <li>
-            Operating income for the period: <strong>{opiCurrentLabel}</strong>.
+            Operating income for the period: <strong>{opiCurrentLabel}</strong> — {opiDeltaDollars >= 0 ? 'an increase' : 'a decrease'} of {opiDeltaDollarsLabel} ({fmtPct(opiPctDelta, 1)} MoM) vs. {opiPrevLabel} in {formatMonthLong(previousMonthLabel)}.
           </li>
         </ul>
       </section>

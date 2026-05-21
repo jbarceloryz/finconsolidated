@@ -144,13 +144,13 @@ export default function CommentaryBlock({ periodLabel, reportType }) {
         {isEmpty ? (
           <p className="text-slate-400 italic text-[11px]">No commentary added for this period.</p>
         ) : (
-          <div
-            className="rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-slate-800"
-            style={{ borderLeft: '3px solid #10b981' }}
-          >
+          <div className="text-slate-800">
             {text.split('\n').map((line, i) => {
-              const isHeader = /^(Situation|Outlook|Watch items|Risks|Actions|Next steps)\s*:/i.test(line)
-              if (line.trim() === '') return <div key={i} style={{ height: '0.5em' }} />
+              const trimmed = line.trim()
+              // Any line whose trimmed content ends with ':' is a heading
+              // (covers "Situation:", "Outlook:", "Watch items / Risks:", etc.)
+              const isHeader = /:\s*$/.test(trimmed)
+              if (trimmed === '') return <div key={i} style={{ height: '0.5em' }} />
               return (
                 <p key={i} className={`text-[11.5px] leading-relaxed ${isHeader ? 'font-semibold text-slate-900 mt-2' : 'text-slate-700'}`}>
                   {line}
