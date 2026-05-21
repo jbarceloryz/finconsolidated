@@ -1,15 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import {
   fmtMoney, fmtPct, fmtPctNoSign,
   formatMonthLong,
   valueAt, pctChange,
   buildMonthlyPL, buildExecutiveNarrative,
-  computeOverdueInvoices, summarizeGpByClient,
+  computeOverdueInvoices,
 } from './reportUtils'
-import { supabase, isSupabaseConfigured } from '../../../lib/supabase'
 import CommentaryBlock from './CommentaryBlock'
-
-const _IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
 
 const ROW_DEFS = [
   { key: 'totalIncome', label: 'Total Income' },
@@ -29,31 +26,6 @@ export default function WBRReport({
   nextMonthLabel,
   invoices,
 }) {
-  const [talentRows, setTalentRows] = useState(null)
-  const [talentLoading, setTalentLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      if (_IS_DEMO || !isSupabaseConfigured()) {
-        if (!cancelled) { setTalentRows([]); setTalentLoading(false) }
-        return
-      }
-      try {
-        const { data, error } = await supabase
-          .from('talent_pool')
-          .select('company, rate, actual_cost, net_margin, rate_type, status')
-        if (error) throw error
-        if (!cancelled) { setTalentRows(data || []); setTalentLoading(false) }
-      } catch (err) {
-        console.warn('Failed to load talent_pool for WBR:', err)
-        if (!cancelled) { setTalentRows([]); setTalentLoading(false) }
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [])
-
   const narrative = useMemo(
     () => buildExecutiveNarrative({ metricsByCompany, months, currentMonthLabel, previousMonthLabel, hcKey }),
     [metricsByCompany, months, currentMonthLabel, previousMonthLabel, hcKey]
@@ -72,10 +44,14 @@ export default function WBRReport({
     [metricsByCompany, months, entities, nextMonthLabel]
   )
 
-  const overdue = useMemo(() => computeOverdueInvoices(invoices), [invoices])
+  // Exclude Hiptrain invoices from the WBR overdue table.
+  const overdue = useMemo(
+    () => computeOverdueInvoices(invoices).filter(
+      (inv) => !String(inv.client || '').toLowerCase().includes('hiptrain')
+    ),
+    [invoices]
+  )
   const overdueTotal = overdue.reduce((s, inv) => s + (Number(inv.amount) || 0), 0)
-
-  const gpByClient = useMemo(() => summarizeGpByClient(talentRows || []), [talentRows])
 
   // Consolidated comparison figures
   const revCurr = narrative.revCurr
@@ -94,8 +70,6 @@ export default function WBRReport({
   const opiPrev = valueAt(metricsByCompany, 'CONSOLIDATED', 'operatingIncome', months, previousMonthLabel)
   const opiDelta = opiCurr - opiPrev
   const opiPctDelta = pctChange(opiCurr, opiPrev)
-
-  const hcKeyLabel = _IS_DEMO ? hcKey : 'HC'
 
   return (
     <div className="p-8 print:p-0 text-[11.5px] leading-snug">
@@ -193,54 +167,6 @@ export default function WBRReport({
           )}
         </section>
       </div>
-
-      {/* GP per client — landscape page 3 */}
-      <div className="report-landscape">
-        <section className="mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">Operational metrics — Gross Margin per placement by client</h2>
-          {talentLoading ? (
-            <p className="text-slate-500 italic">Loading talent pool data...</p>
-          ) : gpByClient.length === 0 ? (
-            <p className="text-slate-600 italic">Talent pool data unavailable.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-[11px]">
-                <thead>
-                  <tr className="bg-slate-100 border-b border-slate-300">
-                    <th className="text-left py-2 px-2 font-semibold text-slate-700">Company</th>
-                    <th className="text-right py-2 px-2 font-semibold text-slate-700">Placements</th>
-                    <th className="text-right py-2 px-2 font-semibold text-slate-700">Avg. GM per placement</th>
-                    <th className="text-right py-2 px-2 font-semibold text-slate-700">Avg. GM (USD)</th>
-                    <th className="text-right py-2 px-2 font-semibold text-slate-700">Median GM (USD)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {gpByClient.map((row, i) => (
-                    <tr key={i} className={`border-b border-slate-200 ${row.isTotal ? 'bg-slate-50 border-t-2 border-slate-400 font-semibold' : ''}`}>
-                      <td className="py-1.5 px-2 text-slate-800">{row.company}</td>
-                      <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{row.placements}</td>
-                      <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{fmtPctNoSign(row.avgGpPct)}</td>
-                      <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{fmtMoney(row.avgGp)}</td>
-                      <td className="text-right py-1.5 px-2 tabular-nums text-slate-700">{row.medianGp !== null ? fmtMoney(row.medianGp) : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="text-xs text-slate-500 mt-2">Monthly contractors only. Data sourced from the GP Analysis talent pool.</p>
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
-  )
-}
-
-function Kpi({ label, value, delta }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">{label}</p>
-      <p className="text-base font-semibold text-slate-900">{value}</p>
-      {delta && <p className="text-xs text-slate-600 mt-0.5">{delta}</p>}
     </div>
   )
 }
