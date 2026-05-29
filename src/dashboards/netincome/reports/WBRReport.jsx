@@ -76,9 +76,7 @@ export default function WBRReport({
     [months, currentMonthLabel]
   )
   const window6mCount = window6m.length
-  const window6mLabel = window6mCount > 0
-    ? `${window6mCount}m avg (${formatMonthLong(window6m[0])} – ${formatMonthLong(window6m[window6mCount - 1])})`
-    : '6m avg'
+  const window6mLabel = window6mCount > 0 ? `${window6mCount}m avg` : '6m avg'
 
   const rev6m = useMemo(
     () => rollingAvg(metricsByCompany, 'CONSOLIDATED', 'totalIncome', months, currentMonthLabel, 6),
