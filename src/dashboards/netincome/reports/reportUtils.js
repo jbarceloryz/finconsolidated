@@ -88,6 +88,57 @@ export function chronologicalMonths(months, yearSuffix) {
   return [...ofYear].sort((a, b) => monthIndexFromLabel(a) - monthIndexFromLabel(b))
 }
 
+// Sorts ALL month labels chronologically across years (e.g. Nov-25 < Jan-26).
+// Parses the "Month-YY" suffix to produce a sortable year*12 + monthIdx key.
+export function chronologicalAll(months) {
+  const key = (lbl) => {
+    const [, yr] = String(lbl).split('-')
+    const y = parseInt(yr, 10)
+    return (isNaN(y) ? 0 : y) * 12 + monthIndexFromLabel(lbl)
+  }
+  return [...months].sort((a, b) => key(a) - key(b))
+}
+
+// Returns up to `n` chronologically-sorted month labels that come strictly
+// BEFORE `currentLabel`. Used to build a trailing-N-month baseline window.
+// If fewer than `n` prior months exist in `months`, returns whatever is
+// available (down to an empty array if currentLabel is the earliest).
+export function priorMonthsWindow(months, currentLabel, n) {
+  const chrono = chronologicalAll(months)
+  const idx = chrono.indexOf(currentLabel)
+  if (idx <= 0) return []
+  const start = Math.max(0, idx - n)
+  return chrono.slice(start, idx)
+}
+
+// Simple arithmetic mean of a metric over a trailing N-month window
+// (window EXCLUDES currentLabel). Returns null if the window is empty.
+export function rollingAvg(metricsByCompany, company, metric, months, currentLabel, n = 6) {
+  const window = priorMonthsWindow(months, currentLabel, n)
+  if (window.length === 0) return null
+  const sum = window.reduce(
+    (acc, lbl) => acc + valueAt(metricsByCompany, company, metric, months, lbl),
+    0
+  )
+  return sum / window.length
+}
+
+// Revenue-weighted ratio over a trailing N-month window — i.e.
+// (Σ numerator) / (Σ denominator) × 100. Correct way to aggregate a ratio
+// across months because it preserves the underlying dollar weighting.
+// Returns null if window is empty or denominator sum is 0.
+export function rollingRatio(metricsByCompany, company, numKey, denomKey, months, currentLabel, n = 6) {
+  const window = priorMonthsWindow(months, currentLabel, n)
+  if (window.length === 0) return null
+  let num = 0, den = 0
+  for (const lbl of window) {
+    num += valueAt(metricsByCompany, company, numKey, months, lbl)
+    den += valueAt(metricsByCompany, company, denomKey, months, lbl)
+  }
+  if (den === 0) return null
+  return (num / den) * 100
+}
+
 // Computes overdue invoices from cashflow (dueDate < today, not paid)
 export function computeOverdueInvoices(invoices) {
   if (!Array.isArray(invoices)) return []

@@ -5,6 +5,7 @@ import {
   valueAt, pctChange,
   buildMonthlyPL, buildExecutiveNarrative,
   computeOverdueInvoices,
+  rollingAvg, rollingRatio, priorMonthsWindow,
 } from './reportUtils'
 import CommentaryBlock from './CommentaryBlock'
 
@@ -53,23 +54,60 @@ export default function WBRReport({
   )
   const overdueTotal = overdue.reduce((s, inv) => s + (Number(inv.amount) || 0), 0)
 
-  // Consolidated comparison figures
+  // Consolidated current-month figures
   const revCurr = narrative.revCurr
-  const revPrev = narrative.revPrev
   const gpCurr = narrative.gpCurr
   const gmCurr = narrative.gmCurr
-  const gmPrev = narrative.gmPrev
   const opiCurr = narrative.opiCurr
   const totalCogsCurr = valueAt(metricsByCompany, 'CONSOLIDATED', 'cogs', months, currentMonthLabel)
   const totalExpCurr = valueAt(metricsByCompany, 'CONSOLIDATED', 'totalExpenses', months, currentMonthLabel)
-  const totalExpPrev = valueAt(metricsByCompany, 'CONSOLIDATED', 'totalExpenses', months, previousMonthLabel)
   const cogsPctOfRev = revCurr !== 0 ? (totalCogsCurr / revCurr) * 100 : 0
   const expPctOfRev = revCurr !== 0 ? (totalExpCurr / revCurr) * 100 : 0
-  const expPctOfRevPrev = revPrev !== 0 ? (totalExpPrev / revPrev) * 100 : 0
-  const expBipsChange = Math.round((expPctOfRev - expPctOfRevPrev) * 100)
+
+  // Prior single month kept only for the Net Income bullet's contextual aside.
   const opiPrev = valueAt(metricsByCompany, 'CONSOLIDATED', 'operatingIncome', months, previousMonthLabel)
-  const opiDelta = opiCurr - opiPrev
-  const opiPctDelta = pctChange(opiCurr, opiPrev)
+
+  // Trailing 6-month baselines (window excludes current month, see priorMonthsWindow).
+  // If fewer than 6 prior months are present in the dataset, the helper falls back
+  // to whatever is available (e.g. for a May-26 current with data starting Jan-26,
+  // the window is Jan–Apr-26, i.e. 4 months).
+  const window6m = useMemo(
+    () => priorMonthsWindow(months, currentMonthLabel, 6),
+    [months, currentMonthLabel]
+  )
+  const window6mCount = window6m.length
+  const window6mLabel = window6mCount > 0
+    ? `${window6mCount}m avg (${formatMonthLong(window6m[0])} – ${formatMonthLong(window6m[window6mCount - 1])})`
+    : '6m avg'
+
+  const rev6m = useMemo(
+    () => rollingAvg(metricsByCompany, 'CONSOLIDATED', 'totalIncome', months, currentMonthLabel, 6),
+    [metricsByCompany, months, currentMonthLabel]
+  )
+  const opi6m = useMemo(
+    () => rollingAvg(metricsByCompany, 'CONSOLIDATED', 'operatingIncome', months, currentMonthLabel, 6),
+    [metricsByCompany, months, currentMonthLabel]
+  )
+  const gm6m = useMemo(
+    () => rollingRatio(metricsByCompany, 'CONSOLIDATED', 'grossProfit', 'totalIncome', months, currentMonthLabel, 6),
+    [metricsByCompany, months, currentMonthLabel]
+  )
+  const expRatio6m = useMemo(
+    () => rollingRatio(metricsByCompany, 'CONSOLIDATED', 'totalExpenses', 'totalIncome', months, currentMonthLabel, 6),
+    [metricsByCompany, months, currentMonthLabel]
+  )
+
+  // Deltas vs the 6-month baseline. Each guarded against a null baseline
+  // (the case when currentMonthLabel is the earliest month in the dataset).
+  const revDelta6m = rev6m != null ? revCurr - rev6m : null
+  const revPct6m = rev6m != null ? pctChange(revCurr, rev6m) : null
+  const opiDelta6m = opi6m != null ? opiCurr - opi6m : null
+  const opiPct6m = opi6m != null ? pctChange(opiCurr, opi6m) : null
+  const gmBips6m = gm6m != null ? Math.round((gmCurr - gm6m) * 100) : null
+  const expBips6m = expRatio6m != null ? Math.round((expPctOfRev - expRatio6m) * 100) : null
+
+  // Net income bullet keeps the prior single-month value for context.
+  const opiDeltaPrev = opiCurr - opiPrev
 
   return (
     <div className="p-8 print:p-0 text-[11.5px] leading-snug">
@@ -77,20 +115,30 @@ export default function WBRReport({
       <section className="mb-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Executive Summary</h2>
         <p className="mb-3">
-          <strong>Revenue:</strong> {fmtMoney(revCurr)} ({fmtPct(narrative.revDelta, 1)} MoM) &nbsp;&middot;&nbsp; <strong>Gross Profit:</strong> {fmtMoney(gpCurr)} ({fmtPctNoSign(gmCurr)} margin) &nbsp;&middot;&nbsp; <strong>Operating Income:</strong> {fmtMoney(opiCurr)} ({fmtPct(opiPctDelta, 1)} MoM, {opiDelta >= 0 ? '+' : '-'}{fmtMoney(Math.abs(opiDelta))}) &nbsp;&middot;&nbsp; <strong>Overdue AR:</strong> {fmtMoney(overdueTotal)} ({overdue.length} invoices)
+          <strong>Revenue:</strong> {fmtMoney(revCurr)}{revPct6m != null && (<> ({fmtPct(revPct6m, 1)} vs {window6mLabel}, {revDelta6m >= 0 ? '+' : '-'}{fmtMoney(Math.abs(revDelta6m))})</>)} &nbsp;&middot;&nbsp; <strong>Gross Profit:</strong> {fmtMoney(gpCurr)} ({fmtPctNoSign(gmCurr)} margin) &nbsp;&middot;&nbsp; <strong>Operating Income:</strong> {fmtMoney(opiCurr)}{opiPct6m != null && (<> ({fmtPct(opiPct6m, 1)} vs {window6mLabel}, {opiDelta6m >= 0 ? '+' : '-'}{fmtMoney(Math.abs(opiDelta6m))})</>)} &nbsp;&middot;&nbsp; <strong>Overdue AR:</strong> {fmtMoney(overdueTotal)} ({overdue.length} invoices)
         </p>
         <div className="space-y-1.5 text-slate-700">
           <p>
             <strong>Cost of goods sold:</strong> total COGS of {fmtMoney(totalCogsCurr)} represents {fmtPctNoSign(cogsPctOfRev)} of revenue.
           </p>
           <p>
-            <strong>Gross profit:</strong> {fmtMoney(gpCurr)} — {fmtPctNoSign(gmCurr)} of revenue, {Math.abs(Math.round((gmCurr - gmPrev) * 100))} bips {gmCurr >= gmPrev ? 'increase' : 'decrease'} vs. last month ({fmtPctNoSign(gmPrev)}).
+            <strong>Gross profit:</strong> {fmtMoney(gpCurr)} — {fmtPctNoSign(gmCurr)} of revenue
+            {gmBips6m != null
+              ? <>, {Math.abs(gmBips6m)} bips {gmBips6m >= 0 ? 'increase' : 'decrease'} vs. {window6mLabel} ({fmtPctNoSign(gm6m)}).</>
+              : <>.</>}
           </p>
           <p>
-            <strong>Expenses:</strong> estimated expenses of {fmtMoney(totalExpCurr)} ({fmtPctNoSign(expPctOfRev)} of revenue). Exp/Rev {expBipsChange >= 0 ? 'increased' : 'decreased'} {Math.abs(expBipsChange)} bips vs. last month.
+            <strong>Expenses:</strong> estimated expenses of {fmtMoney(totalExpCurr)} ({fmtPctNoSign(expPctOfRev)} of revenue).
+            {expBips6m != null
+              ? <> Exp/Rev {expBips6m >= 0 ? 'increased' : 'decreased'} {Math.abs(expBips6m)} bips vs. {window6mLabel} ({fmtPctNoSign(expRatio6m)}).</>
+              : null}
           </p>
           <p>
-            <strong>Net Income:</strong> operating income of {fmtMoney(opiCurr)} — {opiDelta >= 0 ? 'an increase' : 'a decrease'} of {fmtMoney(Math.abs(opiDelta))} ({fmtPct(opiPctDelta, 1)} MoM) vs. {formatMonthLong(previousMonthLabel)} ({fmtMoney(opiPrev)}).
+            <strong>Net Income:</strong> operating income of {fmtMoney(opiCurr)}
+            {opi6m != null
+              ? <> — {opiDelta6m >= 0 ? 'an increase' : 'a decrease'} of {fmtMoney(Math.abs(opiDelta6m))} ({fmtPct(opiPct6m, 1)}) vs. {window6mLabel} ({fmtMoney(opi6m)}).</>
+              : <>.</>}
+            {' '}Last month ({formatMonthLong(previousMonthLabel)}): {fmtMoney(opiPrev)} ({opiDeltaPrev >= 0 ? '+' : '-'}{fmtMoney(Math.abs(opiDeltaPrev))} MoM).
           </p>
         </div>
       </section>
