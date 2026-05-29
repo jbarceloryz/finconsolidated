@@ -102,7 +102,15 @@ export default function WBRReport({
   const opiDelta6m = opi6m != null ? opiCurr - opi6m : null
   const opiPct6m = opi6m != null ? pctChange(opiCurr, opi6m) : null
   const gmBips6m = gm6m != null ? Math.round((gmCurr - gm6m) * 100) : null
-  const expBips6m = expRatio6m != null ? Math.round((expPctOfRev - expRatio6m) * 100) : null
+
+  // Expenses are stored as negative numbers (outflows). For display we use
+  // magnitudes so "increased/decreased" reads the natural way: a larger
+  // |Exp/Rev| this month than in the baseline means expenses are a higher
+  // share of revenue, i.e. they "increased".
+  const totalExpCurrAbs = Math.abs(totalExpCurr)
+  const expPctOfRevAbs = Math.abs(expPctOfRev)
+  const expRatio6mAbs = expRatio6m != null ? Math.abs(expRatio6m) : null
+  const expBips6m = expRatio6mAbs != null ? Math.round((expPctOfRevAbs - expRatio6mAbs) * 100) : null
 
   // Net income bullet keeps the prior single-month value for context.
   const opiDeltaPrev = opiCurr - opiPrev
@@ -126,9 +134,9 @@ export default function WBRReport({
               : <>.</>}
           </p>
           <p>
-            <strong>Expenses:</strong> estimated expenses of {fmtMoney(totalExpCurr)} ({fmtPctNoSign(expPctOfRev)} of revenue).
+            <strong>Expenses:</strong> estimated expenses of {fmtMoney(totalExpCurrAbs)} ({fmtPctNoSign(expPctOfRevAbs)} of revenue).
             {expBips6m != null
-              ? <> Exp/Rev {expBips6m >= 0 ? 'increased' : 'decreased'} {Math.abs(expBips6m)} bips vs. {window6mLabel} ({fmtPctNoSign(expRatio6m)}).</>
+              ? <> Exp/Rev {expBips6m >= 0 ? 'increased' : 'decreased'} {Math.abs(expBips6m)} bips vs. {window6mLabel} ({fmtPctNoSign(expRatio6mAbs)}).</>
               : null}
           </p>
           <p>
