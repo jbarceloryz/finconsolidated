@@ -16,3 +16,6 @@ build/
 Cashflow/.git
 Net Income Project/.git
 GP Analysis/.git
+
+# Claude Code per-session worktree state
+.claude/worktrees/
