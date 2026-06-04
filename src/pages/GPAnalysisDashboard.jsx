@@ -1,29 +1,39 @@
 import React, { useEffect, useRef } from 'react'
 import { IS_DEMO } from '../lib/DataCacheContext'
+import { useAuth } from '../lib/AuthContext'
 
 /** GP Analysis runs in an iframe. In dev, Vite serves it from the "GP Analysis" folder at /gp-analysis/. */
 const GP_IFRAME_SRC = `/gp-analysis/index.html${IS_DEMO ? '?demo=true' : ''}`
 
 export default function GPAnalysisDashboard() {
   const iframeRef = useRef(null)
+  const { session } = useAuth()
 
-  // When the shell is already unlocked, tell the iframe so it can show the dashboard without asking for password again.
+  // This page only renders when the shell is authorized. Forward the Supabase
+  // session into the iframe so its own client can read data under RLS, and tell
+  // it to drop its auth gate. Re-posts on token refresh while mounted.
   useEffect(() => {
-    const isUnlocked = sessionStorage.getItem('finconsolidated-auth') === '1'
-    if (!isUnlocked || !iframeRef.current) return
     const iframe = iframeRef.current
-    const onLoad = () => {
+    if (!iframe) return
+    const origin = new URL(GP_IFRAME_SRC, window.location.origin).origin
+    const post = () => {
       try {
         iframe.contentWindow?.postMessage(
-          { type: 'finconsolidated-auth', unlocked: true },
-          new URL(GP_IFRAME_SRC, window.location.origin).origin
+          {
+            type: 'finconsolidated-auth',
+            unlocked: true,
+            session: session
+              ? { access_token: session.access_token, refresh_token: session.refresh_token }
+              : null,
+          },
+          origin
         )
       } catch (_) {}
     }
-    iframe.addEventListener('load', onLoad)
-    if (iframe.contentWindow) onLoad()
-    return () => iframe.removeEventListener('load', onLoad)
-  }, [])
+    iframe.addEventListener('load', post)
+    if (iframe.contentWindow) post()
+    return () => iframe.removeEventListener('load', post)
+  }, [session])
 
   return (
     <div className="flex flex-col h-full min-h-[calc(100vh-0px)]">

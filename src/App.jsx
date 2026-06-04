@@ -3,6 +3,7 @@ import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import { ThemeProvider, useTheme } from './ThemeContext'
 import { DataCacheProvider, IS_DEMO } from './lib/DataCacheContext'
+import { AuthProvider, useAuth } from './lib/AuthContext'
 
 // Lazy-load heavy dashboard pages — only downloaded when the user navigates to them
 const CashflowDashboard = React.lazy(() => import('./pages/CashflowDashboard'))
@@ -45,6 +46,28 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+function UserMenu() {
+  const { email, signOut } = useAuth()
+  if (IS_DEMO || !email) return null
+  return (
+    <div className="px-3 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+      <div className="px-3 pb-2 truncate" title={email} style={{ fontSize: 11, color: 'var(--ink-mute)', fontFamily: "'JetBrains Mono', monospace" }}>
+        {email}
+      </div>
+      <button
+        onClick={signOut}
+        className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors"
+        style={{ color: 'var(--ink-dim)', background: 'transparent' }}
+        onMouseOver={(e) => { e.currentTarget.style.background = 'var(--hover)'; e.currentTarget.style.color = 'var(--ink)' }}
+        onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-dim)' }}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span style={{ fontSize: 12 }}>Sign out</span>
+      </button>
+    </div>
+  )
+}
+
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme()
   const isLight = theme === 'light'
@@ -67,9 +90,6 @@ function ThemeToggle() {
     </div>
   )
 }
-
-const AUTH_KEY = 'finconsolidated-auth'
-const PASSWORD = '!accounting123$'
 
 const navItems = [
   { path: '/', label: 'Overview', end: true },
@@ -105,56 +125,66 @@ function Topbar() {
   )
 }
 
-function App() {
-  const [unlocked, setUnlocked] = useState(() => IS_DEMO || sessionStorage.getItem(AUTH_KEY) === '1')
-  const [passwordInput, setPasswordInput] = useState('')
-  const [passwordError, setPasswordError] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+function AuthScreen() {
+  const { loading, session, email, authorized, signInWithGoogle, signOut } = useAuth()
 
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault()
-    setPasswordError('')
-    if (passwordInput === PASSWORD) {
-      sessionStorage.setItem(AUTH_KEY, '1')
-      setUnlocked(true)
-      setPasswordInput('')
-    } else {
-      setPasswordError('Incorrect password')
-    }
-  }
-
-  if (!unlocked) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8" style={{ background: 'var(--bg)' }}>
-        <div className="w-full max-w-sm ledger-card elev p-8">
+        <div className="animate-pulse rounded-lg h-12 w-48" />
+      </div>
+    )
+  }
+
+  // Signed in with a Google account that is not on the allowlist.
+  if (session && !authorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8" style={{ background: 'var(--bg)' }}>
+        <div className="w-full max-w-sm ledger-card elev p-8 text-center">
           <div className="ledger-eyebrow mb-2">Ledger · Finance</div>
-          <h1 className="ledger-serif mb-1" style={{ fontSize: 22, color: 'var(--ink)' }}>Finance Consolidated</h1>
-          <p className="text-sm mb-6" style={{ color: 'var(--ink-dim)' }}>Enter password to access dashboards.</p>
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <input
-              type="password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Password"
-              className="w-full px-3 py-2 text-sm"
-              style={{
-                background: 'var(--bg-card-elev)',
-                border: '1px solid var(--line-strong)',
-                borderRadius: 4,
-                color: 'var(--ink)',
-                fontFamily: "'JetBrains Mono', monospace",
-              }}
-              autoFocus
-              autoComplete="current-password"
-            />
-            {passwordError && <p className="text-sm" style={{ color: 'var(--neg)' }}>{passwordError}</p>}
-            <button type="submit" className="ledger-btn ledger-btn-primary w-full justify-center" style={{ padding: '8px 16px' }}>
-              Unlock
-            </button>
-          </form>
+          <h1 className="ledger-serif mb-1" style={{ fontSize: 22, color: 'var(--ink)' }}>Access denied</h1>
+          <p className="text-sm mb-6" style={{ color: 'var(--ink-dim)' }}>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{email}</span> is not authorized to view these dashboards. Ask an admin to add you.
+          </p>
+          <button onClick={signOut} className="ledger-btn w-full justify-center" style={{ padding: '8px 16px' }}>
+            Sign out
+          </button>
         </div>
       </div>
     )
+  }
+
+  // Not signed in.
+  return (
+    <div className="min-h-screen flex items-center justify-center p-8" style={{ background: 'var(--bg)' }}>
+      <div className="w-full max-w-sm ledger-card elev p-8">
+        <div className="ledger-eyebrow mb-2">Ledger · Finance</div>
+        <h1 className="ledger-serif mb-1" style={{ fontSize: 22, color: 'var(--ink)' }}>Finance Consolidated</h1>
+        <p className="text-sm mb-6" style={{ color: 'var(--ink-dim)' }}>Sign in with your work Google account to access the dashboards.</p>
+        <button
+          onClick={signInWithGoogle}
+          className="ledger-btn ledger-btn-primary w-full justify-center"
+          style={{ padding: '10px 16px', gap: 10 }}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.583-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+          </svg>
+          Sign in with Google
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function App() {
+  const { authorized } = useAuth()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  if (!authorized) {
+    return <AuthScreen />
   }
 
   return (
@@ -237,6 +267,7 @@ function App() {
           ))}
         </nav>
 
+        <UserMenu />
         <ThemeToggle />
       </aside>
 
@@ -295,9 +326,11 @@ function App() {
 export default function AppWithTheme() {
   return (
     <ThemeProvider>
-      <DataCacheProvider>
-        <App />
-      </DataCacheProvider>
+      <AuthProvider>
+        <DataCacheProvider>
+          <App />
+        </DataCacheProvider>
+      </AuthProvider>
     </ThemeProvider>
   )
 }

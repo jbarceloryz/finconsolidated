@@ -397,11 +397,7 @@
   <div id="authGate" class="auth-gate">
     <div class="auth-card">
       <h2>Dashboard Access</h2>
-      <p>Enter the password to view the dashboard.</p>
-      <form id="authForm" class="auth-form">
-        <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
-        <button type="submit">Enter</button>
-      </form>
+      <p>Open this dashboard from the Finance Consolidated app after signing in with your Google account.</p>
       <div id="authError" class="auth-error" aria-live="polite"></div>
     </div>
   </div>
@@ -469,7 +465,8 @@
   </div>
 
   <script>
-    const DASHBOARD_PASSWORD = '!accounting123$';
+    // Access is governed by the parent app's Google sign-in + Supabase RLS.
+    // This flag is set once the parent forwards an authenticated session.
     const AUTH_STORAGE_KEY = 'grossprofit_dashboard_auth';
     const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -875,26 +872,8 @@
       if (dashboardApp) dashboardApp.style.display = 'none';
     }
 
-    function attachAuthListeners() {
-      if (authListenersAttached) return;
-      authListenersAttached = true;
-      const form = document.getElementById('authForm');
-      const input = document.getElementById('authPassword');
-      const error = document.getElementById('authError');
-      if (!form || !input || !error) return;
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        if (input.value === DASHBOARD_PASSWORD) {
-          window.sessionStorage.setItem(AUTH_STORAGE_KEY, 'ok');
-          error.textContent = '';
-          input.value = '';
-          initDashboard();
-        } else {
-          error.textContent = 'Incorrect password.';
-          input.select();
-        }
-      });
-    }
+    // Auth is handled by the parent app (Google sign-in) via postMessage.
+    // No local password form remains.
 
     async function initDashboard() {
       showDashboard();
@@ -1192,9 +1171,14 @@
       if (lastCsvText) run(lastCsvText);
     }
 
-    window.addEventListener('message', function (event) {
+    window.addEventListener('message', async function (event) {
       if (event.data && event.data.type === 'finconsolidated-auth' && event.data.unlocked === true) {
         try {
+          const s = event.data.session;
+          if (s && s.access_token && s.refresh_token && _sbClient) {
+            // Adopt the parent's authenticated session so Supabase RLS lets us read.
+            await _sbClient.auth.setSession({ access_token: s.access_token, refresh_token: s.refresh_token });
+          }
           window.sessionStorage.setItem(AUTH_STORAGE_KEY, 'ok');
           initDashboard();
         } catch (_) {}
@@ -1207,13 +1191,12 @@
         initDashboard();
         return;
       }
-      attachAuthListeners();
+      // Wait for the parent app to forward an authenticated session via postMessage.
+      // If the page is opened directly (no parent), show guidance instead of data.
       if (isAuthenticated()) {
         initDashboard();
       } else {
         showAuthGate();
-        const input = document.getElementById('authPassword');
-        if (input) input.focus();
       }
     }
 
