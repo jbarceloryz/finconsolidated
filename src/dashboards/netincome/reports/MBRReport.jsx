@@ -168,36 +168,33 @@ export default function MBRReport({
         </section>
       </div>
 
-      {/* P&L by entity + comparison — landscape page 2 */}
+      {/* P&L by entity + comparison + next-month projection — landscape page 2.
+          break-inside-avoid keeps each table whole if the page ever overflows. */}
       <div className="report-landscape">
-        <section className="mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">P&amp;L by entity — {formatMonthLong(currentMonthLabel)}</h2>
+        <section className="mb-3 break-inside-avoid">
+          <h2 className="text-lg font-semibold text-slate-900 mb-1">P&amp;L by entity — {formatMonthLong(currentMonthLabel)}</h2>
           <PLTable rows={currentPL} />
         </section>
-        <section className="mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">P&amp;L comparison — {formatMonthLong(currentMonthLabel)} vs prior month &amp; YTD average</h2>
+        <section className="mb-3 break-inside-avoid">
+          <h2 className="text-lg font-semibold text-slate-900 mb-1">P&amp;L comparison — {formatMonthLong(currentMonthLabel)} vs prior month &amp; YTD average</h2>
           <ComparisonTable
             rows={comparisonRows}
             currentLabel={currentMonthLabel}
             previousLabel={previousMonthLabel}
             ytdRangeLabel={ytdRangeLabel}
           />
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-slate-500 mt-1">
             Consolidated figures. YTD average is the simple monthly mean over {ytdRangeLabel || 'prior months this year'}, excluding {abbrMonth(currentMonthLabel).split('-')[0]}.
           </p>
         </section>
-      </div>
-
-      {/* Next-month projection — landscape page 3 */}
-      {nextMonthLabel && nextPL && (
-        <div className="report-landscape">
-          <section className="mb-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-2">Next-month projection — {formatMonthLong(nextMonthLabel)}</h2>
+        {nextMonthLabel && nextPL && (
+          <section className="mb-3 break-inside-avoid">
+            <h2 className="text-lg font-semibold text-slate-900 mb-1">Next-month projection — {formatMonthLong(nextMonthLabel)}</h2>
             <PLTable rows={nextPL} />
-            <p className="text-xs text-slate-500 mt-2">Projection derived from the same forecast data shown on the Net Income dashboard.</p>
+            <p className="text-xs text-slate-500 mt-1">Projection derived from the same forecast data shown on the Net Income dashboard.</p>
           </section>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
