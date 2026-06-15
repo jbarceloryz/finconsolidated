@@ -41,6 +41,39 @@ export default function MBRReport({
     [metricsByCompany, months, entities, nextMonthLabel]
   )
 
+  // YTD window = the year's months that come chronologically before the MBR
+  // month (e.g. for May, this is Jan–Apr). Used as the YTD-average baseline.
+  const ytdWindow = useMemo(() => {
+    const idx = yearMonths.indexOf(currentMonthLabel)
+    return idx > 0 ? yearMonths.slice(0, idx) : []
+  }, [yearMonths, currentMonthLabel])
+
+  // Consolidated P&L comparison: MBR month vs prior month and vs YTD average.
+  const comparisonRows = useMemo(() => {
+    return ROW_DEFS.map((def) => {
+      const curr = valueAt(metricsByCompany, 'CONSOLIDATED', def.key, months, currentMonthLabel)
+      const prev = valueAt(metricsByCompany, 'CONSOLIDATED', def.key, months, previousMonthLabel)
+      const avg = ytdWindow.length
+        ? ytdWindow.reduce((s, m) => s + valueAt(metricsByCompany, 'CONSOLIDATED', def.key, months, m), 0) / ytdWindow.length
+        : null
+      return {
+        key: def.key,
+        label: def.label,
+        curr,
+        prev,
+        momDollar: curr - prev,
+        momPct: pctChange(curr, prev),
+        avg,
+        avgDollar: avg == null ? null : curr - avg,
+        avgPct: avg == null ? null : pctChange(curr, avg),
+      }
+    })
+  }, [metricsByCompany, months, currentMonthLabel, previousMonthLabel, ytdWindow])
+
+  const ytdRangeLabel = ytdWindow.length
+    ? `${shortName(ytdWindow[0])}–${shortName(ytdWindow[ytdWindow.length - 1])}`
+    : ''
+
   // Revenue matrix (entities x months)
   const matrix = (metric) => {
     return entities
@@ -128,20 +161,36 @@ export default function MBRReport({
         </section>
       </div>
 
-      {/* P&L + Projection — landscape page 2 */}
+      {/* P&L by entity + comparison — landscape page 2 */}
       <div className="report-landscape">
         <section className="mb-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-2">P&amp;L by entity — {formatMonthLong(currentMonthLabel)}</h2>
           <PLTable rows={currentPL} />
         </section>
-        {nextMonthLabel && nextPL && (
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">P&amp;L comparison — {formatMonthLong(currentMonthLabel)} vs prior month &amp; YTD average</h2>
+          <ComparisonTable
+            rows={comparisonRows}
+            currentLabel={currentMonthLabel}
+            previousLabel={previousMonthLabel}
+            ytdRangeLabel={ytdRangeLabel}
+          />
+          <p className="text-xs text-slate-500 mt-2">
+            Consolidated figures. YTD average is the simple monthly mean over {ytdRangeLabel || 'prior months this year'}, excluding {abbrMonth(currentMonthLabel).split('-')[0]}.
+          </p>
+        </section>
+      </div>
+
+      {/* Next-month projection — landscape page 3 */}
+      {nextMonthLabel && nextPL && (
+        <div className="report-landscape">
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-2">Next-month projection — {formatMonthLong(nextMonthLabel)}</h2>
             <PLTable rows={nextPL} />
             <p className="text-xs text-slate-500 mt-2">Projection derived from the same forecast data shown on the Net Income dashboard.</p>
           </section>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -165,6 +214,9 @@ function abbrMonth(label) {
   const [name, yr] = String(label).split('-')
   const abbr = MONTH_TO_ABBR[name] || name
   return yr ? `${abbr}-${yr}` : abbr
+}
+function shortName(label) {
+  return abbrMonth(label).split('-')[0]
 }
 
 function MonthlyEntityTable({ rows, totals, yearMonths, totalLabel }) {
@@ -198,6 +250,53 @@ function MonthlyEntityTable({ rows, totals, yearMonths, totalLabel }) {
       </table>
     </div>
   )
+}
+
+function ComparisonTable({ rows, currentLabel, previousLabel, ytdRangeLabel }) {
+  const currHdr = abbrMonth(currentLabel)
+  const prevHdr = abbrMonth(previousLabel)
+  const avgHdr = ytdRangeLabel ? `YTD avg (${ytdRangeLabel})` : 'YTD avg'
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-[10.5px]">
+        <thead>
+          <tr className="bg-slate-100 border-b border-slate-300">
+            <th className="text-left py-1.5 px-2 font-semibold text-slate-700">Line item</th>
+            <th className="text-right py-1.5 px-2 font-semibold text-slate-700">{currHdr}</th>
+            <th className="text-right py-1.5 px-2 font-semibold text-slate-700">{prevHdr}</th>
+            <th className="text-right py-1.5 px-2 font-semibold text-slate-700">Δ $ MoM</th>
+            <th className="text-right py-1.5 px-2 font-semibold text-slate-700">Δ % MoM</th>
+            <th className="text-right py-1.5 px-2 font-semibold text-slate-700">{avgHdr}</th>
+            <th className="text-right py-1.5 px-2 font-semibold text-slate-700">Δ $ vs avg</th>
+            <th className="text-right py-1.5 px-2 font-semibold text-slate-700">Δ % vs avg</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const emphasize = r.key === 'grossProfit' || r.key === 'operatingIncome'
+            return (
+              <tr key={r.key} className={`border-b border-slate-200 ${emphasize ? 'bg-emerald-50 font-semibold' : ''}`}>
+                <td className="py-1.5 px-2 text-slate-800">{r.label}</td>
+                <td className="text-right py-1.5 px-2 text-slate-700 tabular-nums">{fmtMoney(r.curr)}</td>
+                <td className="text-right py-1.5 px-2 text-slate-700 tabular-nums">{fmtMoney(r.prev)}</td>
+                <td className="text-right py-1.5 px-2 text-slate-700 tabular-nums">{fmtSignedMoney(r.momDollar)}</td>
+                <td className="text-right py-1.5 px-2 text-slate-700 tabular-nums">{fmtPct(r.momPct, 1)}</td>
+                <td className="text-right py-1.5 px-2 text-slate-700 tabular-nums">{r.avg == null ? '—' : fmtMoney(r.avg)}</td>
+                <td className="text-right py-1.5 px-2 text-slate-700 tabular-nums">{r.avgDollar == null ? '—' : fmtSignedMoney(r.avgDollar)}</td>
+                <td className="text-right py-1.5 px-2 text-slate-700 tabular-nums">{r.avgPct == null ? '—' : fmtPct(r.avgPct, 1)}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function fmtSignedMoney(value) {
+  if (value == null || isNaN(value)) return '—'
+  const sign = value > 0 ? '+' : value < 0 ? '-' : ''
+  return `${sign}${fmtMoney(Math.abs(value))}`
 }
 
 function PLTable({ rows }) {
