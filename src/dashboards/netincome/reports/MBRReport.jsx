@@ -56,16 +56,23 @@ export default function MBRReport({
       const avg = ytdWindow.length
         ? ytdWindow.reduce((s, m) => s + valueAt(metricsByCompany, 'CONSOLIDATED', def.key, months, m), 0) / ytdWindow.length
         : null
+      // COGS and Expenses are stored as negatives. Base their variance on
+      // magnitude so a larger cost reads as a positive change (both $ and %),
+      // e.g. -606k vs -549k is "+$57k / +10%", not "-$57k / -10%".
+      const isCost = def.key === 'cogs' || def.key === 'totalExpenses'
+      const vCurr = isCost ? Math.abs(curr) : curr
+      const vPrev = isCost ? Math.abs(prev) : prev
+      const vAvg = avg == null ? null : (isCost ? Math.abs(avg) : avg)
       return {
         key: def.key,
         label: def.label,
         curr,
         prev,
-        momDollar: curr - prev,
-        momPct: pctChange(curr, prev),
+        momDollar: vCurr - vPrev,
+        momPct: pctChange(vCurr, vPrev),
         avg,
-        avgDollar: avg == null ? null : curr - avg,
-        avgPct: avg == null ? null : pctChange(curr, avg),
+        avgDollar: vAvg == null ? null : vCurr - vAvg,
+        avgPct: vAvg == null ? null : pctChange(vCurr, vAvg),
       }
     })
   }, [metricsByCompany, months, currentMonthLabel, previousMonthLabel, ytdWindow])
