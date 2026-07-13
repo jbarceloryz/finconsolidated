@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import {
   fmtMoney, fmtPct, fmtPctNoSign,
   formatMonthLong, chronologicalMonths,
-  valueAt, pctChange, buildMonthlyPL, buildExecutiveNarrative,
+  valueAt, pctChange, buildMonthlyPL, buildExecutiveNarrative, buildBusinessMix,
 } from './reportUtils'
 import CommentaryBlock from './CommentaryBlock'
 
@@ -19,6 +19,7 @@ export default function MBRReport({
   metricsByCompany,
   entities,
   hcKey,
+  mspKey,
   currentMonthLabel,
   previousMonthLabel,
   nextMonthLabel,
@@ -28,6 +29,15 @@ export default function MBRReport({
     () => buildExecutiveNarrative({ metricsByCompany, months, currentMonthLabel, previousMonthLabel, hcKey }),
     [metricsByCompany, months, currentMonthLabel, previousMonthLabel, hcKey]
   )
+
+  const mix = useMemo(
+    () => buildBusinessMix({ metricsByCompany, months, monthLabel: currentMonthLabel, hcKey, mspKey }),
+    [metricsByCompany, months, currentMonthLabel, hcKey, mspKey]
+  )
+  // MSP share of consolidated revenue, current vs prior month (for the header KPI).
+  const mspShareCurr = narrative.revCurr !== 0 ? (mix.mspRev / narrative.revCurr) * 100 : 0
+  const mspRevPrev = valueAt(metricsByCompany, mspKey, 'totalIncome', months, previousMonthLabel)
+  const mspShareDelta = pctChange(mix.mspRev, mspRevPrev)
 
   const yearMonths = useMemo(() => chronologicalMonths(months, yearSuffix), [months, yearSuffix])
 
@@ -123,7 +133,7 @@ export default function MBRReport({
       <section className="mb-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Executive Summary</h2>
         <p className="mb-3">
-          <strong>Revenue:</strong> {revCurrentLabel} ({fmtPct(narrative.revDelta, 1)} MoM) &nbsp;&middot;&nbsp; <strong>Gross Profit:</strong> {gpCurrentLabel} ({gmCurrentLabel} GM) &nbsp;&middot;&nbsp; <strong>Operating Income:</strong> {opiCurrentLabel} &nbsp;&middot;&nbsp; <strong>HC Share:</strong> {fmtPctNoSign(narrative.hcShare, 1)} ({fmtPct(narrative.hcDelta, 1)} MoM)
+          <strong>Revenue:</strong> {revCurrentLabel} ({fmtPct(narrative.revDelta, 1)} MoM) &nbsp;&middot;&nbsp; <strong>Gross Profit:</strong> {gpCurrentLabel} ({gmCurrentLabel} GM) &nbsp;&middot;&nbsp; <strong>Operating Income:</strong> {opiCurrentLabel} &nbsp;&middot;&nbsp; <strong>HC Share:</strong> {fmtPctNoSign(narrative.hcShare, 1)} ({fmtPct(narrative.hcDelta, 1)} MoM){mix.mspActive && (<> &nbsp;&middot;&nbsp; <strong>MSP Share:</strong> {fmtPctNoSign(mspShareCurr, 1)} ({fmtPct(mspShareDelta, 1)} MoM)</>)}
         </p>
         <ul className="list-disc pl-5 text-slate-700 space-y-1">
           <li>
@@ -132,6 +142,11 @@ export default function MBRReport({
           <li>
             HC remained the dominant revenue driver at {fmtPctNoSign(narrative.hcShare, 1)} of total revenue with {hcCurrentLabel}, {narrative.hcDelta >= 0 ? 'up' : 'down'} {fmtPctNoSign(Math.abs(narrative.hcDelta), 1)} from {hcPrevLabel} last month.
           </li>
+          {mix.mspActive && (
+            <li>
+              MSP, the managed-services line carved out of HC, contributed {fmtMoney(mix.mspRev)} ({fmtPctNoSign(mspShareCurr, 1)} of total revenue) at a {fmtPctNoSign(mix.mspGm, 1)} gross margin — a {Math.abs(mix.premiumPts).toFixed(1)}-point {mix.premiumPts >= 0 ? 'premium' : 'discount'} to HC&rsquo;s {fmtPctNoSign(mix.hcGm, 1)} — while representing {fmtPctNoSign(mix.mspGpShareOfHc, 1)} of HC&rsquo;s gross profit.
+            </li>
+          )}
           <li>
             Gross margin was {gmCurrentLabel}, a {bipsAbs} bips {bipsDirection} vs. {fmtPctNoSign(narrative.gmPrev)} last month.
           </li>
@@ -140,6 +155,16 @@ export default function MBRReport({
           </li>
         </ul>
       </section>
+
+      {/* Business mix — HC vs. MSP */}
+      {mix.mspActive && (
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Business mix — HC vs. MSP</h2>
+          <p className="text-slate-700">
+            HC, the traditional staffing model, generated {fmtMoney(mix.hcRev)} in revenue at a {fmtPctNoSign(mix.hcGm, 1)} gross margin, while MSP — where a managed-services layer sits on top of the same contractor placement — delivered {fmtMoney(mix.mspRev)} at a {fmtPctNoSign(mix.mspGm, 1)} gross margin, a {Math.abs(mix.premiumPts).toFixed(1)}-point {mix.premiumPts >= 0 ? 'premium' : 'discount'}. MSP billed {fmtPctNoSign(mix.mspRevShareOfHc, 1)} of HC&rsquo;s revenue but contributed {fmtPctNoSign(mix.mspGpShareOfHc, 1)} of its gross profit, so each MSP dollar drives roughly {mix.gpPerDollarRatio.toFixed(1)}&times; the gross profit of a traditional staffing dollar. Combined, the two lines produced {fmtMoney(mix.combGp)} of gross profit on {fmtMoney(mix.combRev)} of revenue ({fmtPctNoSign(mix.blendedGm, 1)} blended margin){mix.blendedGm > mix.hcGm ? ', with MSP pulling the blended figure above HC’s standalone level' : ''}.
+          </p>
+        </section>
+      )}
 
       {/* Finance Team Commentary */}
       <section className="mb-6">

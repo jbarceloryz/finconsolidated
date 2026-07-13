@@ -3,7 +3,7 @@ import {
   fmtMoney, fmtPct, fmtPctNoSign,
   formatMonthLong,
   valueAt, pctChange,
-  buildMonthlyPL, buildExecutiveNarrative,
+  buildMonthlyPL, buildExecutiveNarrative, buildBusinessMix,
   computeOverdueInvoices,
   rollingAvg, rollingRatio, priorMonthsWindow,
 } from './reportUtils'
@@ -22,6 +22,7 @@ export default function WBRReport({
   metricsByCompany,
   entities,
   hcKey,
+  mspKey,
   currentMonthLabel,
   previousMonthLabel,
   nextMonthLabel,
@@ -30,6 +31,11 @@ export default function WBRReport({
   const narrative = useMemo(
     () => buildExecutiveNarrative({ metricsByCompany, months, currentMonthLabel, previousMonthLabel, hcKey }),
     [metricsByCompany, months, currentMonthLabel, previousMonthLabel, hcKey]
+  )
+
+  const mix = useMemo(
+    () => buildBusinessMix({ metricsByCompany, months, monthLabel: currentMonthLabel, hcKey, mspKey }),
+    [metricsByCompany, months, currentMonthLabel, hcKey, mspKey]
   )
 
   const currentPL = useMemo(
@@ -152,6 +158,15 @@ export default function WBRReport({
       <section className="mb-6">
         <CommentaryBlock periodLabel={currentMonthLabel} reportType="wbr" />
       </section>
+
+      {mix.mspActive && (
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Business mix — HC vs. MSP</h2>
+          <p className="text-slate-700">
+            HC, the traditional staffing model, generated {fmtMoney(mix.hcRev)} in revenue at a {fmtPctNoSign(mix.hcGm, 1)} gross margin, while MSP — where a managed-services layer sits on top of the same contractor placement — delivered {fmtMoney(mix.mspRev)} at a {fmtPctNoSign(mix.mspGm, 1)} gross margin, a {Math.abs(mix.premiumPts).toFixed(1)}-point {mix.premiumPts >= 0 ? 'premium' : 'discount'}. MSP billed {fmtPctNoSign(mix.mspRevShareOfHc, 1)} of HC&rsquo;s revenue but contributed {fmtPctNoSign(mix.mspGpShareOfHc, 1)} of its gross profit, so each MSP dollar drives roughly {mix.gpPerDollarRatio.toFixed(1)}&times; the gross profit of a traditional staffing dollar. Combined, the two lines produced {fmtMoney(mix.combGp)} of gross profit on {fmtMoney(mix.combRev)} of revenue ({fmtPctNoSign(mix.blendedGm, 1)} blended margin){mix.blendedGm > mix.hcGm ? ', with MSP pulling the blended figure above HC’s standalone level' : ''}. Every dollar that originates under the MSP model rather than the traditional one is worth materially more at the gross-profit line.
+          </p>
+        </section>
+      )}
 
       {/* Current-month P&L + MoM comparison — landscape page 1 */}
       <div className="report-landscape">

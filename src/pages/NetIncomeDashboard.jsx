@@ -19,12 +19,47 @@ import { deriveCurrentMonthLabel, chronologicalMonths, formatMonthLong } from '.
 const _IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
 
 const TABLE_COLUMNS_REAL = [
-  { key: 'Ryz Labs LLC', label: 'Ryz Labs LLC' },
   { key: 'Ryz Labs HC LLC', label: 'HC' },
+  { key: 'Ryz Labs MSP', label: 'MSP' },
   { key: 'Hip Train Inc', label: 'Hiptrain' },
   { key: 'Offsiteio Inc', label: 'Offsiteio' },
   { key: 'Ryz Labs Studio LLC', label: 'Studio' },
   { key: 'Ntrvsta', label: 'Ntrvsta' },
+  { key: 'CONSOLIDATED', label: 'Total' },
+]
+
+// Entities hidden from the dashboard in real mode. "Ryz Labs LLC" is a pure
+// holding company whose overhead is already pushed down into HC/MSP; the
+// reported CONSOLIDATED excludes it, so it must not appear as its own column,
+// in the entity picker, or in the chart's summed-consolidated series (where it
+// would otherwise be double-counted against a CONSOLIDATED that omits it).
+const HIDDEN_ENTITIES_REAL = ['Ryz Labs LLC']
+
+/** Remove holding entities that are not part of the reported CONSOLIDATED. */
+function stripHiddenEntities(parsed) {
+  if (_IS_DEMO || !parsed) return parsed
+  const keep = (obj) => {
+    const out = {}
+    for (const k of Object.keys(obj || {})) {
+      if (!HIDDEN_ENTITIES_REAL.includes(k)) out[k] = obj[k]
+    }
+    return out
+  }
+  return { ...parsed, byCompany: keep(parsed.byCompany), metricsByCompany: keep(parsed.metricsByCompany) }
+}
+
+// Entity columns for the WBR/MBR reports (real mode). These mirror the finance
+// team's report layout: HC and MSP shown as separate business units, and the
+// pure holding entity "Ryz Labs LLC" omitted because the reported CONSOLIDATED
+// figures exclude it (its overhead is already pushed down into HC/MSP). Studio
+// INC (Ntrvsta) keeps its external-facing label here.
+const REPORT_ENTITIES_REAL = [
+  { key: 'Ryz Labs HC LLC', label: 'HC' },
+  { key: 'Ryz Labs MSP', label: 'MSP' },
+  { key: 'Hip Train Inc', label: 'Hiptrain' },
+  { key: 'Offsiteio Inc', label: 'Offsiteio' },
+  { key: 'Ryz Labs Studio LLC', label: 'Studio' },
+  { key: 'Ntrvsta', label: 'Studio INC' },
   { key: 'CONSOLIDATED', label: 'Total' },
 ]
 
@@ -120,7 +155,7 @@ export default function NetIncomeDashboard() {
     fetchNetIncome(forceRefresh)
       .then((fromSupabase) => {
         if (fromSupabase !== null) {
-          setParsed(fromSupabase)
+          setParsed(stripHiddenEntities(fromSupabase))
           setLastUpdated(new Date())
           setIsLoading(false)
           return
@@ -132,7 +167,7 @@ export default function NetIncomeDashboard() {
           })
           .then((text) => {
             try {
-              setParsed(parseFinancialCsv(text))
+              setParsed(stripHiddenEntities(parseFinancialCsv(text)))
               setLastUpdated(new Date())
             } catch (e) {
               setLoadError('Failed to parse CSV')
@@ -692,8 +727,9 @@ function NetIncomeContent({
         const curIdx = chrono.indexOf(curLbl)
         const prevLbl = curIdx > 0 ? chrono[curIdx - 1] : chrono[0]
         const nextLbl = curIdx >= 0 && curIdx < chrono.length - 1 ? chrono[curIdx + 1] : null
-        const reportEntities = TABLE_COLUMNS.filter((c) => metricsByCompany[c.key])
+        const reportEntities = (_IS_DEMO ? TABLE_COLUMNS : REPORT_ENTITIES_REAL).filter((c) => metricsByCompany[c.key])
         const hcKey = _IS_DEMO ? (TABLE_COLUMNS.find(c => c.key !== 'CONSOLIDATED') || {}).key : 'Ryz Labs HC LLC'
+        const mspKey = _IS_DEMO ? (TABLE_COLUMNS.filter(c => c.key !== 'CONSOLIDATED')[1] || {}).key : 'Ryz Labs MSP'
         return (
           <ReportModal
             title={`Weekly Business Review — ${formatMonthLong(curLbl)}`}
@@ -705,6 +741,7 @@ function NetIncomeContent({
               metricsByCompany={metricsByCompany}
               entities={reportEntities}
               hcKey={hcKey}
+              mspKey={mspKey}
               currentMonthLabel={curLbl}
               previousMonthLabel={prevLbl}
               nextMonthLabel={nextLbl}
@@ -723,8 +760,9 @@ function NetIncomeContent({
         const mbrIdx = curIdx > 0 ? curIdx - 1 : 0
         const mbrLbl = chrono[mbrIdx]
         const prevLbl = mbrIdx > 0 ? chrono[mbrIdx - 1] : chrono[0]
-        const reportEntities = TABLE_COLUMNS.filter((c) => metricsByCompany[c.key])
+        const reportEntities = (_IS_DEMO ? TABLE_COLUMNS : REPORT_ENTITIES_REAL).filter((c) => metricsByCompany[c.key])
         const hcKey = _IS_DEMO ? (TABLE_COLUMNS.find(c => c.key !== 'CONSOLIDATED') || {}).key : 'Ryz Labs HC LLC'
+        const mspKey = _IS_DEMO ? (TABLE_COLUMNS.filter(c => c.key !== 'CONSOLIDATED')[1] || {}).key : 'Ryz Labs MSP'
         return (
           <ReportModal
             title={`Monthly Business Review — ${formatMonthLong(mbrLbl)}`}
@@ -736,6 +774,7 @@ function NetIncomeContent({
               metricsByCompany={metricsByCompany}
               entities={reportEntities}
               hcKey={hcKey}
+              mspKey={mspKey}
               currentMonthLabel={mbrLbl}
               previousMonthLabel={prevLbl}
               nextMonthLabel={curLbl}

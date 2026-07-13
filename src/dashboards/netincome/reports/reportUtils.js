@@ -230,6 +230,38 @@ export function summarizeGpByClient(talentRows) {
   return [...rows.sort((a, b) => a.company.localeCompare(b.company)), grand]
 }
 
+// Compares the two staffing lines — HC (traditional placement) and MSP
+// (managed-services layer on top of the same placement) — for a single month.
+// All figures derive from the same metricsByCompany the dashboard uses, so the
+// report always ties out to the P&L tables. `mspActive` is false in months
+// before MSP had any revenue (e.g. Jan–Mar 2026), letting callers hide the
+// block instead of dividing by zero.
+export function buildBusinessMix({ metricsByCompany, months, monthLabel, hcKey, mspKey }) {
+  const hcRev = valueAt(metricsByCompany, hcKey, 'totalIncome', months, monthLabel)
+  const hcGp = valueAt(metricsByCompany, hcKey, 'grossProfit', months, monthLabel)
+  const mspRev = valueAt(metricsByCompany, mspKey, 'totalIncome', months, monthLabel)
+  const mspGp = valueAt(metricsByCompany, mspKey, 'grossProfit', months, monthLabel)
+
+  const hcGm = hcRev !== 0 ? (hcGp / hcRev) * 100 : 0
+  const mspGm = mspRev !== 0 ? (mspGp / mspRev) * 100 : 0
+  const premiumPts = mspGm - hcGm
+  const mspRevShareOfHc = hcRev !== 0 ? (mspRev / hcRev) * 100 : 0
+  const mspGpShareOfHc = hcGp !== 0 ? (mspGp / hcGp) * 100 : 0
+  const gpPerDollarRatio = hcGm !== 0 ? mspGm / hcGm : 0
+
+  const combRev = hcRev + mspRev
+  const combGp = hcGp + mspGp
+  const blendedGm = combRev !== 0 ? (combGp / combRev) * 100 : 0
+
+  return {
+    hcRev, hcGp, hcGm,
+    mspRev, mspGp, mspGm,
+    premiumPts, mspRevShareOfHc, mspGpShareOfHc, gpPerDollarRatio,
+    combRev, combGp, blendedGm,
+    mspActive: mspRev > 0,
+  }
+}
+
 // Builds a narrative summary block for the report executive section.
 export function buildExecutiveNarrative({
   metricsByCompany,

@@ -31,6 +31,7 @@ function parseCurrency(value) {
 const COMPANY_HEADERS = [
   'CONSOLIDATED',
   'Ryz Labs HC LLC',
+  'Ryz Labs MSP',
   'Offsiteio Inc',
   'Ryz Labs Studio LLC',
   'Studio INC (Ntrvsta)',
