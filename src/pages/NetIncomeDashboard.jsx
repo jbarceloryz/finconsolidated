@@ -51,15 +51,14 @@ function stripHiddenEntities(parsed) {
 // Entity columns for the WBR/MBR reports (real mode). These mirror the finance
 // team's report layout: HC and MSP shown as separate business units, and the
 // pure holding entity "Ryz Labs LLC" omitted because the reported CONSOLIDATED
-// figures exclude it (its overhead is already pushed down into HC/MSP). Studio
-// INC (Ntrvsta) keeps its external-facing label here.
+// figures exclude it (its overhead is already pushed down into HC/MSP).
 const REPORT_ENTITIES_REAL = [
   { key: 'Ryz Labs HC LLC', label: 'HC' },
   { key: 'Ryz Labs MSP', label: 'MSP' },
   { key: 'Hip Train Inc', label: 'Hiptrain' },
   { key: 'Offsiteio Inc', label: 'Offsiteio' },
   { key: 'Ryz Labs Studio LLC', label: 'Studio' },
-  { key: 'Ntrvsta', label: 'Studio INC' },
+  { key: 'Ntrvsta', label: 'Ntrvsta' },
   { key: 'CONSOLIDATED', label: 'Total' },
 ]
 

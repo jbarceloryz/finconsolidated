@@ -1,17 +1,11 @@
--- Supabase adjustment: split Ryz Labs HC LLC into HC + MSP, drop the
--- holding entity "Ryz Labs LLC", and align CONSOLIDATED so it excludes it.
--- Source of truth: "Investor - Financial Report - New Portfolio.csv".
--- Safe to re-run: the DELETE is a no-op once RLL is gone, and the INSERT
--- upserts on the (company, metric_key, period_label) unique key.
--- Run in Supabase → SQL Editor.
+-- Full Net Income data load — Ryz Holding P&L (post-MSP split, no Ryz Labs LLC).
+-- Source: "Investor - Financial Report - New Portfolio (1).csv".
+-- Deletes existing rows and reloads all three tables in one transaction so the
+-- result exactly matches the CSV. Safe to re-run. Run in Supabase -> SQL Editor.
 
 begin;
 
--- 1) Remove the holding entity entirely (it is not part of CONSOLIDATED).
-delete from net_income_metrics where company = 'Ryz Labs LLC';
-
--- 2) Upsert the post-split figures for every remaining entity + CONSOLIDATED.
---    CONSOLIDATED here already excludes Ryz Labs LLC and includes MSP.
+delete from net_income_metrics;
 insert into net_income_metrics (company, metric_key, period_label, value) values
   ('CONSOLIDATED', 'totalIncome', 'January-26', 728353),
   ('CONSOLIDATED', 'totalIncome', 'February-26', 831325),
@@ -30,49 +24,49 @@ insert into net_income_metrics (company, metric_key, period_label, value) values
   ('CONSOLIDATED', 'cogs', 'March-26', -523088),
   ('CONSOLIDATED', 'cogs', 'April-26', -549462),
   ('CONSOLIDATED', 'cogs', 'May-26', -606022),
-  ('CONSOLIDATED', 'cogs', 'June-26', -785596),
-  ('CONSOLIDATED', 'cogs', 'July-26', -667581),
-  ('CONSOLIDATED', 'cogs', 'August-26', -666764),
-  ('CONSOLIDATED', 'cogs', 'September-26', -667050),
-  ('CONSOLIDATED', 'cogs', 'October-26', -667188),
-  ('CONSOLIDATED', 'cogs', 'November-26', -664030),
-  ('CONSOLIDATED', 'cogs', 'December-26', -664174),
+  ('CONSOLIDATED', 'cogs', 'June-26', -785610),
+  ('CONSOLIDATED', 'cogs', 'July-26', -667595),
+  ('CONSOLIDATED', 'cogs', 'August-26', -666778),
+  ('CONSOLIDATED', 'cogs', 'September-26', -667064),
+  ('CONSOLIDATED', 'cogs', 'October-26', -667202),
+  ('CONSOLIDATED', 'cogs', 'November-26', -664044),
+  ('CONSOLIDATED', 'cogs', 'December-26', -664188),
   ('CONSOLIDATED', 'grossProfit', 'January-26', 231689),
   ('CONSOLIDATED', 'grossProfit', 'February-26', 253437),
   ('CONSOLIDATED', 'grossProfit', 'March-26', 231958),
   ('CONSOLIDATED', 'grossProfit', 'April-26', 227391),
   ('CONSOLIDATED', 'grossProfit', 'May-26', 251082),
-  ('CONSOLIDATED', 'grossProfit', 'June-26', 330897),
-  ('CONSOLIDATED', 'grossProfit', 'July-26', 304043),
-  ('CONSOLIDATED', 'grossProfit', 'August-26', 301131),
-  ('CONSOLIDATED', 'grossProfit', 'September-26', 301315),
-  ('CONSOLIDATED', 'grossProfit', 'October-26', 301439),
-  ('CONSOLIDATED', 'grossProfit', 'November-26', 300190),
-  ('CONSOLIDATED', 'grossProfit', 'December-26', 300319),
+  ('CONSOLIDATED', 'grossProfit', 'June-26', 330883),
+  ('CONSOLIDATED', 'grossProfit', 'July-26', 304029),
+  ('CONSOLIDATED', 'grossProfit', 'August-26', 301117),
+  ('CONSOLIDATED', 'grossProfit', 'September-26', 301302),
+  ('CONSOLIDATED', 'grossProfit', 'October-26', 301426),
+  ('CONSOLIDATED', 'grossProfit', 'November-26', 300177),
+  ('CONSOLIDATED', 'grossProfit', 'December-26', 300306),
   ('CONSOLIDATED', 'totalExpenses', 'January-26', -231422),
   ('CONSOLIDATED', 'totalExpenses', 'February-26', -235303),
   ('CONSOLIDATED', 'totalExpenses', 'March-26', -225077),
   ('CONSOLIDATED', 'totalExpenses', 'April-26', -225674),
   ('CONSOLIDATED', 'totalExpenses', 'May-26', -241879),
-  ('CONSOLIDATED', 'totalExpenses', 'June-26', -246868),
-  ('CONSOLIDATED', 'totalExpenses', 'July-26', -259704),
-  ('CONSOLIDATED', 'totalExpenses', 'August-26', -259704),
-  ('CONSOLIDATED', 'totalExpenses', 'September-26', -259704),
-  ('CONSOLIDATED', 'totalExpenses', 'October-26', -259704),
-  ('CONSOLIDATED', 'totalExpenses', 'November-26', -259704),
-  ('CONSOLIDATED', 'totalExpenses', 'December-26', -259704),
+  ('CONSOLIDATED', 'totalExpenses', 'June-26', -247127),
+  ('CONSOLIDATED', 'totalExpenses', 'July-26', -259813),
+  ('CONSOLIDATED', 'totalExpenses', 'August-26', -259813),
+  ('CONSOLIDATED', 'totalExpenses', 'September-26', -259813),
+  ('CONSOLIDATED', 'totalExpenses', 'October-26', -259813),
+  ('CONSOLIDATED', 'totalExpenses', 'November-26', -259813),
+  ('CONSOLIDATED', 'totalExpenses', 'December-26', -259813),
   ('CONSOLIDATED', 'operatingIncome', 'January-26', 267),
   ('CONSOLIDATED', 'operatingIncome', 'February-26', 18133),
   ('CONSOLIDATED', 'operatingIncome', 'March-26', 6881),
   ('CONSOLIDATED', 'operatingIncome', 'April-26', 1717),
   ('CONSOLIDATED', 'operatingIncome', 'May-26', 9203),
-  ('CONSOLIDATED', 'operatingIncome', 'June-26', 84029),
-  ('CONSOLIDATED', 'operatingIncome', 'July-26', 44338),
-  ('CONSOLIDATED', 'operatingIncome', 'August-26', 41427),
-  ('CONSOLIDATED', 'operatingIncome', 'September-26', 41611),
-  ('CONSOLIDATED', 'operatingIncome', 'October-26', 41735),
-  ('CONSOLIDATED', 'operatingIncome', 'November-26', 40486),
-  ('CONSOLIDATED', 'operatingIncome', 'December-26', 40615),
+  ('CONSOLIDATED', 'operatingIncome', 'June-26', 83756),
+  ('CONSOLIDATED', 'operatingIncome', 'July-26', 44216),
+  ('CONSOLIDATED', 'operatingIncome', 'August-26', 41304),
+  ('CONSOLIDATED', 'operatingIncome', 'September-26', 41489),
+  ('CONSOLIDATED', 'operatingIncome', 'October-26', 41613),
+  ('CONSOLIDATED', 'operatingIncome', 'November-26', 40364),
+  ('CONSOLIDATED', 'operatingIncome', 'December-26', 40493),
   ('Ryz Labs HC LLC', 'totalIncome', 'January-26', 665520),
   ('Ryz Labs HC LLC', 'totalIncome', 'February-26', 704076),
   ('Ryz Labs HC LLC', 'totalIncome', 'March-26', 696081),
@@ -234,7 +228,7 @@ insert into net_income_metrics (company, metric_key, period_label, value) values
   ('Offsiteio Inc', 'totalExpenses', 'March-26', -5070),
   ('Offsiteio Inc', 'totalExpenses', 'April-26', -4885),
   ('Offsiteio Inc', 'totalExpenses', 'May-26', -4886),
-  ('Offsiteio Inc', 'totalExpenses', 'June-26', -4884),
+  ('Offsiteio Inc', 'totalExpenses', 'June-26', -5033),
   ('Offsiteio Inc', 'totalExpenses', 'July-26', -4884),
   ('Offsiteio Inc', 'totalExpenses', 'August-26', -4884),
   ('Offsiteio Inc', 'totalExpenses', 'September-26', -4884),
@@ -246,7 +240,7 @@ insert into net_income_metrics (company, metric_key, period_label, value) values
   ('Offsiteio Inc', 'operatingIncome', 'March-26', 1518),
   ('Offsiteio Inc', 'operatingIncome', 'April-26', -4885),
   ('Offsiteio Inc', 'operatingIncome', 'May-26', -1678),
-  ('Offsiteio Inc', 'operatingIncome', 'June-26', 42550),
+  ('Offsiteio Inc', 'operatingIncome', 'June-26', 42401),
   ('Offsiteio Inc', 'operatingIncome', 'July-26', -4884),
   ('Offsiteio Inc', 'operatingIncome', 'August-26', -4884),
   ('Offsiteio Inc', 'operatingIncome', 'September-26', -4884),
@@ -270,49 +264,49 @@ insert into net_income_metrics (company, metric_key, period_label, value) values
   ('Ryz Labs Studio LLC', 'cogs', 'March-26', -3555),
   ('Ryz Labs Studio LLC', 'cogs', 'April-26', -3521),
   ('Ryz Labs Studio LLC', 'cogs', 'May-26', -3501),
-  ('Ryz Labs Studio LLC', 'cogs', 'June-26', -3501),
-  ('Ryz Labs Studio LLC', 'cogs', 'July-26', -3501),
-  ('Ryz Labs Studio LLC', 'cogs', 'August-26', -3501),
-  ('Ryz Labs Studio LLC', 'cogs', 'September-26', -3501),
-  ('Ryz Labs Studio LLC', 'cogs', 'October-26', -3501),
-  ('Ryz Labs Studio LLC', 'cogs', 'November-26', -3501),
-  ('Ryz Labs Studio LLC', 'cogs', 'December-26', -3501),
+  ('Ryz Labs Studio LLC', 'cogs', 'June-26', -3515),
+  ('Ryz Labs Studio LLC', 'cogs', 'July-26', -3515),
+  ('Ryz Labs Studio LLC', 'cogs', 'August-26', -3515),
+  ('Ryz Labs Studio LLC', 'cogs', 'September-26', -3515),
+  ('Ryz Labs Studio LLC', 'cogs', 'October-26', -3515),
+  ('Ryz Labs Studio LLC', 'cogs', 'November-26', -3515),
+  ('Ryz Labs Studio LLC', 'cogs', 'December-26', -3515),
   ('Ryz Labs Studio LLC', 'grossProfit', 'January-26', 6655),
   ('Ryz Labs Studio LLC', 'grossProfit', 'February-26', -1096),
   ('Ryz Labs Studio LLC', 'grossProfit', 'March-26', 6445),
   ('Ryz Labs Studio LLC', 'grossProfit', 'April-26', -2021),
   ('Ryz Labs Studio LLC', 'grossProfit', 'May-26', -1951),
-  ('Ryz Labs Studio LLC', 'grossProfit', 'June-26', 2124),
-  ('Ryz Labs Studio LLC', 'grossProfit', 'July-26', 2124),
-  ('Ryz Labs Studio LLC', 'grossProfit', 'August-26', -2001),
-  ('Ryz Labs Studio LLC', 'grossProfit', 'September-26', -2001),
-  ('Ryz Labs Studio LLC', 'grossProfit', 'October-26', -2001),
-  ('Ryz Labs Studio LLC', 'grossProfit', 'November-26', -2001),
-  ('Ryz Labs Studio LLC', 'grossProfit', 'December-26', -2001),
+  ('Ryz Labs Studio LLC', 'grossProfit', 'June-26', 2110),
+  ('Ryz Labs Studio LLC', 'grossProfit', 'July-26', 2110),
+  ('Ryz Labs Studio LLC', 'grossProfit', 'August-26', -2015),
+  ('Ryz Labs Studio LLC', 'grossProfit', 'September-26', -2015),
+  ('Ryz Labs Studio LLC', 'grossProfit', 'October-26', -2015),
+  ('Ryz Labs Studio LLC', 'grossProfit', 'November-26', -2015),
+  ('Ryz Labs Studio LLC', 'grossProfit', 'December-26', -2015),
   ('Ryz Labs Studio LLC', 'totalExpenses', 'January-26', -1214),
   ('Ryz Labs Studio LLC', 'totalExpenses', 'February-26', -1216),
   ('Ryz Labs Studio LLC', 'totalExpenses', 'March-26', -1204),
   ('Ryz Labs Studio LLC', 'totalExpenses', 'April-26', -1214),
   ('Ryz Labs Studio LLC', 'totalExpenses', 'May-26', -1211),
-  ('Ryz Labs Studio LLC', 'totalExpenses', 'June-26', -1211),
-  ('Ryz Labs Studio LLC', 'totalExpenses', 'July-26', -1211),
-  ('Ryz Labs Studio LLC', 'totalExpenses', 'August-26', -1211),
-  ('Ryz Labs Studio LLC', 'totalExpenses', 'September-26', -1211),
-  ('Ryz Labs Studio LLC', 'totalExpenses', 'October-26', -1211),
-  ('Ryz Labs Studio LLC', 'totalExpenses', 'November-26', -1211),
-  ('Ryz Labs Studio LLC', 'totalExpenses', 'December-26', -1211),
+  ('Ryz Labs Studio LLC', 'totalExpenses', 'June-26', -1319),
+  ('Ryz Labs Studio LLC', 'totalExpenses', 'July-26', -1319),
+  ('Ryz Labs Studio LLC', 'totalExpenses', 'August-26', -1319),
+  ('Ryz Labs Studio LLC', 'totalExpenses', 'September-26', -1319),
+  ('Ryz Labs Studio LLC', 'totalExpenses', 'October-26', -1319),
+  ('Ryz Labs Studio LLC', 'totalExpenses', 'November-26', -1319),
+  ('Ryz Labs Studio LLC', 'totalExpenses', 'December-26', -1319),
   ('Ryz Labs Studio LLC', 'operatingIncome', 'January-26', 5441),
   ('Ryz Labs Studio LLC', 'operatingIncome', 'February-26', -2312),
   ('Ryz Labs Studio LLC', 'operatingIncome', 'March-26', 5241),
   ('Ryz Labs Studio LLC', 'operatingIncome', 'April-26', -3235),
   ('Ryz Labs Studio LLC', 'operatingIncome', 'May-26', -3162),
-  ('Ryz Labs Studio LLC', 'operatingIncome', 'June-26', 913),
-  ('Ryz Labs Studio LLC', 'operatingIncome', 'July-26', 913),
-  ('Ryz Labs Studio LLC', 'operatingIncome', 'August-26', -3212),
-  ('Ryz Labs Studio LLC', 'operatingIncome', 'September-26', -3212),
-  ('Ryz Labs Studio LLC', 'operatingIncome', 'October-26', -3212),
-  ('Ryz Labs Studio LLC', 'operatingIncome', 'November-26', -3212),
-  ('Ryz Labs Studio LLC', 'operatingIncome', 'December-26', -3212),
+  ('Ryz Labs Studio LLC', 'operatingIncome', 'June-26', 790),
+  ('Ryz Labs Studio LLC', 'operatingIncome', 'July-26', 790),
+  ('Ryz Labs Studio LLC', 'operatingIncome', 'August-26', -3335),
+  ('Ryz Labs Studio LLC', 'operatingIncome', 'September-26', -3335),
+  ('Ryz Labs Studio LLC', 'operatingIncome', 'October-26', -3335),
+  ('Ryz Labs Studio LLC', 'operatingIncome', 'November-26', -3335),
+  ('Ryz Labs Studio LLC', 'operatingIncome', 'December-26', -3335),
   ('Ntrvsta', 'totalIncome', 'January-26', 37000),
   ('Ntrvsta', 'totalIncome', 'February-26', 35100),
   ('Ntrvsta', 'totalIncome', 'March-26', 30300),
@@ -432,18 +426,39 @@ insert into net_income_metrics (company, metric_key, period_label, value) values
   ('Hip Train Inc', 'operatingIncome', 'September-26', 2340),
   ('Hip Train Inc', 'operatingIncome', 'October-26', 2464),
   ('Hip Train Inc', 'operatingIncome', 'November-26', 2591),
-  ('Hip Train Inc', 'operatingIncome', 'December-26', 2720)
-on conflict (company, metric_key, period_label)
-  do update set value = excluded.value;
+  ('Hip Train Inc', 'operatingIncome', 'December-26', 2720);
+
+delete from net_income_hc_projected;
+insert into net_income_hc_projected (period_label, value) values
+  ('January-26', 703923),
+  ('February-26', 782136),
+  ('March-26', 860350),
+  ('April-26', 938564),
+  ('May-26', 1016777),
+  ('June-26', 1094991),
+  ('July-26', 1173204),
+  ('August-26', 1251418),
+  ('September-26', 1329632),
+  ('October-26', 1407845),
+  ('November-26', 1486059),
+  ('December-26', 1564273);
+
+delete from net_income_variance;
+insert into net_income_variance (period_label, value) values
+  ('January-26', -38402),
+  ('February-26', -78061),
+  ('March-26', -164269),
+  ('April-26', -224564),
+  ('May-26', -297069),
+  ('June-26', -334650),
+  ('July-26', -388570),
+  ('August-26', -473596),
+  ('September-26', -551597),
+  ('October-26', -629811),
+  ('November-26', -712700),
+  ('December-26', -790914);
 
 commit;
 
--- ── Verify (optional) ─────────────────────────────────────────────────────
--- Expect: 'Ryz Labs LLC' absent; 'Ryz Labs MSP' present; entity income sums
--- to CONSOLIDATED for each month.
+-- Verify: no 'Ryz Labs LLC', 'Ryz Labs MSP' present, entities sum to CONSOLIDATED.
 -- select distinct company from net_income_metrics order by 1;
--- select period_label,
---        sum(value) filter (where company <> 'CONSOLIDATED') as sum_entities,
---        sum(value) filter (where company =  'CONSOLIDATED') as consolidated
--- from net_income_metrics where metric_key = 'totalIncome'
--- group by period_label order by min(id);
