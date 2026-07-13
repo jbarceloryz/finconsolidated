@@ -19,3 +19,7 @@ GP Analysis/.git
 
 # Claude Code per-session worktree state
 .claude/worktrees/
+
+# Net Income Supabase import artifacts (generated on demand, kept out of the repo)
+Net Income Project/net_income_*_import.csv
+Net Income Project/msp_supabase_adjustment.sql
