@@ -324,20 +324,26 @@ function NetIncomeContent({
   }, [metricsByCompany, monthsYear, filterMonthsByPeriod, TABLE_COLUMNS, TABLE_ROWS])
 
   const _hcKey = _IS_DEMO ? (TABLE_COLUMNS.find(c => c.key !== 'CONSOLIDATED') || {}).key : 'Ryz Labs HC LLC'
+  const _mspKey = _IS_DEMO ? (TABLE_COLUMNS.filter(c => c.key !== 'CONSOLIDATED')[1] || {}).key : 'Ryz Labs MSP'
   const _secondKey = _IS_DEMO ? (TABLE_COLUMNS.filter(c => c.key !== 'CONSOLIDATED')[1] || {}).key : 'Offsiteio Inc'
 
   const hcProjectedVsActualAll = useMemo(() => {
     const hc = metricsByCompany[_hcKey]
     if (!hc || !hc.totalIncome || monthsYear.length === 0) return []
-    const actual = hc.totalIncome
+    const hcActual = hc.totalIncome
+    const mspActual = metricsByCompany[_mspKey]?.totalIncome
     return monthsYear.map((month, i) => {
       const proj = hcProjectedSales[i] ?? 0
-      const act = actual[i] ?? 0
-      const variance = varianceVsProjected[i] !== undefined ? varianceVsProjected[i] : act - proj
+      // Actual = HC + MSP. MSP was carved out of HC, so the two together
+      // reconstitute the revenue line the HC projection was built against.
+      // Variance is derived from that combined actual (the stored
+      // varianceVsProjected is HC-only and would no longer match this column).
+      const act = (hcActual[i] ?? 0) + (mspActual?.[i] ?? 0)
+      const variance = act - proj
       const variancePct = proj !== 0 ? (variance / proj) * 100 : 0
       return { month, projected: proj, actual: act, variance, variancePct }
     })
-  }, [metricsByCompany, monthsYear, hcProjectedSales, varianceVsProjected])
+  }, [metricsByCompany, _hcKey, _mspKey, monthsYear, hcProjectedSales])
 
   const hcProjectedVsActual = useMemo(() => {
     if (periodFilter === 'yearly') return hcProjectedVsActualAll
