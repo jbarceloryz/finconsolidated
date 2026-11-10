@@ -144,7 +144,7 @@ export default function MBRReport({
           </li>
           {mix.mspActive && (
             <li>
-              MSP, the managed-services line carved out of HC, contributed {fmtMoney(mix.mspRev)} ({fmtPctNoSign(mspShareCurr, 1)} of total revenue) at a {fmtPctNoSign(mix.mspGm, 1)} gross margin — a {Math.abs(mix.premiumPts).toFixed(1)}-point {mix.premiumPts >= 0 ? 'premium' : 'discount'} to HC&rsquo;s {fmtPctNoSign(mix.hcGm, 1)} — while representing {fmtPctNoSign(mix.mspGpShareOfHc, 1)} of HC&rsquo;s gross profit.
+              MSP, the managed-services line carved out of HC, contributed {fmtMoney(mix.mspRev)} ({fmtPctNoSign(mspShareCurr, 1)} of total revenue){mspRevPrev > 0 && (<>, {mspShareDelta >= 0 ? 'up' : 'down'} {fmtPctNoSign(Math.abs(mspShareDelta), 1)} from {fmtMoney(mspRevPrev)} last month,</>)} at a {fmtPctNoSign(mix.mspGm, 1)} gross margin — a {Math.abs(mix.premiumPts).toFixed(1)}-point {mix.premiumPts >= 0 ? 'premium' : 'discount'} to HC&rsquo;s {fmtPctNoSign(mix.hcGm, 1)} — while representing {fmtPctNoSign(mix.mspGpShareOfHc, 1)} of HC&rsquo;s gross profit.
             </li>
           )}
           <li>
